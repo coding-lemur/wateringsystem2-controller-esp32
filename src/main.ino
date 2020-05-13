@@ -14,6 +14,9 @@ TimerHandle_t wifiReconnectTimer;
 
 Adafruit_BME280 bme; // I2C
 
+// state
+bool isUpdating = false;
+
 void WiFiEvent(WiFiEvent_t event)
 {
     Serial.printf("[WiFi-event] event: %d\n", event);
@@ -35,20 +38,10 @@ void WiFiEvent(WiFiEvent_t event)
 
 void onMqttConnect(bool sessionPresent)
 {
-    Serial.println("Connected to MQTT.");
-    Serial.print("Session present: ");
-    Serial.println(sessionPresent);
-    uint16_t packetIdSub = mqttClient.subscribe("test/lol", 2);
-    Serial.print("Subscribing at QoS 2, packetId: ");
-    Serial.println(packetIdSub);
-    mqttClient.publish("test/lol", 0, true, "test 1");
-    Serial.println("Publishing at QoS 0");
-    uint16_t packetIdPub1 = mqttClient.publish("test/lol", 1, true, "test 2");
-    Serial.print("Publishing at QoS 1, packetId: ");
-    Serial.println(packetIdPub1);
-    uint16_t packetIdPub2 = mqttClient.publish("test/lol", 2, true, "test 3");
-    Serial.print("Publishing at QoS 2, packetId: ");
-    Serial.println(packetIdPub2);
+    mqttClient.subscribe("wateringsystem/client/in/#", 1);
+    mqttClient.publish("wateringsystem/client/out/connected", 1, false);
+
+    sendInfo();
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -63,21 +56,23 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
-    Serial.println("Publish received.");
-    Serial.print("  topic: ");
-    Serial.println(topic);
-    Serial.print("  qos: ");
-    Serial.println(properties.qos);
-    Serial.print("  dup: ");
-    Serial.println(properties.dup);
-    Serial.print("  retain: ");
-    Serial.println(properties.retain);
-    Serial.print("  len: ");
-    Serial.println(len);
-    Serial.print("  index: ");
-    Serial.println(index);
-    Serial.print("  total: ");
-    Serial.println(total);
+    if (isUpdating)
+    {
+        return;
+    }
+
+    String s_payload = String(payload);
+    String s_topic = String(topic);
+    int last = s_topic.lastIndexOf("/") + 1;
+    String channel = s_topic.substring(last);
+
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, s_payload);
+
+    Serial.println("MQTT topic: " + s_topic);
+    Serial.println("MQTT payload: " + s_payload);
+
+    processingMessage(channel, doc);
 }
 
 void sendInfo()
@@ -86,6 +81,8 @@ void sendInfo()
     doc["version"] = version;
     doc["chipID"] = ESP.getEfuseMac();
     doc["freeHeap"] = ESP.getFreeHeap();
+
+    // TODO add battery info
 
     // network
     JsonObject network = doc.createNestedObject("network");
@@ -104,7 +101,7 @@ void sendInfo()
     String JS;
     serializeJson(doc, JS);
 
-    mqttClient.publish("watering-system/client/out/info", 1, false, JS.c_str());
+    mqttClient.publish("wateringsystem/client/out/info", 1, false, JS.c_str());
 }
 
 void connectToWifi()
@@ -153,24 +150,6 @@ void setup()
 
 void loop()
 {
-    Serial.print("Temperature = ");
-    Serial.print(bme.readTemperature());
-    Serial.println(" *C");
-
-    Serial.print("Pressure = ");
-
-    Serial.print(bme.readPressure() / 100.0F);
-    Serial.println(" hPa");
-
-    Serial.print("Approx. Altitude = ");
-    Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-    Serial.println(" m");
-
-    Serial.print("Humidity = ");
-    Serial.print(bme.readHumidity());
-    Serial.println(" %");
-
-    Serial.println();
 }
 
 void setupOAT()
@@ -189,9 +168,13 @@ void setupOAT()
 
                   // NOTE: if updating FS this would be the place to unmount FS using FS.end()
                   Serial.println("Start updating " + type);
+
+                  isUpdating = true;
               })
         .onEnd([]() {
             Serial.println("\nEnd");
+
+            isUpdating = false;
         })
         .onProgress([](unsigned int progress, unsigned int total) {
             Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
@@ -224,23 +207,12 @@ void setupOAT()
 
 void setupBME208()
 {
-    /*while (!bme.begin())
+    if (!bme.begin(0x77, &Wire))
     {
-        Serial.println("Could not find BME280I2C sensor!");
-        delay(1000);
+        Serial.println("Could not find a valid BME280 sensor, check wiring!");
+        while (1)
+            ;
     }
-
-    switch (bme.chipModel())
-    {
-    case BME280::ChipModel_BME280:
-        Serial.println("Found BME280 sensor! Success.");
-        break;
-    case BME280::ChipModel_BMP280:
-        Serial.println("Found BMP280 sensor! No Humidity available.");
-        break;
-    default:
-        Serial.println("Found UNKNOWN sensor! Error!");
-    }*/
 }
 
 int GetRSSIasQuality(int rssi)
@@ -260,4 +232,27 @@ int GetRSSIasQuality(int rssi)
         quality = 2 * (rssi + 100);
     }
     return quality;
+}
+
+void processingMessage(String channel, DynamicJsonDocument doc)
+{
+    if (channel.equals("info"))
+    {
+        sendInfo();
+    }
+    else if (channel.equals("watering"))
+    {
+        // TODO implement waterfing for x seconds
+    }
+    else if (channel.equals("sleep"))
+    {
+        unsigned long seconds = doc["time"].as<unsigned long>();
+        sleep(seconds);
+    }
+}
+
+void sleep(unsigned long time)
+{
+    esp_sleep_enable_timer_wakeup(time * 1000000);
+    esp_deep_sleep_start();
 }
