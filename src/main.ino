@@ -9,17 +9,22 @@
 String version = "0.1.0 beta";
 
 AsyncMqttClient mqttClient;
+
+// timer
 TimerHandle_t mqttReconnectTimer;
 TimerHandle_t wifiReconnectTimer;
+TimerHandle_t waterpumpTimer;
+TimerHandle_t soilMoistureTimer;
 
 Adafruit_BME280 bme; // I2C
 
-// state
+// states
 bool isUpdating = false;
 
 void WiFiEvent(WiFiEvent_t event)
 {
     Serial.printf("[WiFi-event] event: %d\n", event);
+
     switch (event)
     {
     case SYSTEM_EVENT_STA_GOT_IP:
@@ -41,7 +46,7 @@ void onMqttConnect(bool sessionPresent)
     mqttClient.subscribe("wateringsystem/client/in/#", 1);
     mqttClient.publish("wateringsystem/client/out/connected", 1, false);
 
-    sendInfo();
+    sendInfoBegin();
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -75,35 +80,6 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     processingMessage(channel, doc);
 }
 
-void sendInfo()
-{
-    DynamicJsonDocument doc(1024);
-    doc["version"] = version;
-    doc["chipID"] = ESP.getEfuseMac();
-    doc["freeHeap"] = ESP.getFreeHeap();
-
-    // TODO add battery info
-
-    // network
-    JsonObject network = doc.createNestedObject("network");
-    network["wifirssi"] = WiFi.RSSI();
-    network["wifiquality"] = GetRSSIasQuality(WiFi.RSSI());
-    network["wifissid"] = WiFi.SSID();
-    network["ip"] = WiFi.localIP().toString();
-
-    // room weather
-    JsonObject weather = doc.createNestedObject("weather");
-    weather["temperature"] = bme.readTemperature();
-    weather["humidity"] = bme.readHumidity();
-    weather["pressure"] = bme.readPressure() / 100.0F;            // in hPa
-    weather["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA); // in m
-
-    String JS;
-    serializeJson(doc, JS);
-
-    mqttClient.publish("wateringsystem/client/out/info", 1, false, JS.c_str());
-}
-
 void connectToWifi()
 {
     Serial.println("Connecting to Wi-Fi...");
@@ -126,11 +102,9 @@ void connectToMqtt()
 void setup()
 {
     Serial.begin(115200);
-    Serial.println();
-    Serial.println();
 
-    mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
-    wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
+    setupPins();
+    setupTimers();
 
     WiFi.onEvent(WiFiEvent);
 
@@ -150,6 +124,20 @@ void setup()
 
 void loop()
 {
+}
+
+void setupPins()
+{
+    pinMode(WATERPUMP_PIN, OUTPUT);
+    pinMode(SOIL_MOISTURE_SENSOR_PIN, INPUT);
+}
+
+void setupTimers()
+{
+    mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
+    wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
+    waterpumpTimer = xTimerCreate("waterpumpTimer", pdMS_TO_TICKS(1000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(onWaterpumpTimerTriggered));
+    soilMoistureTimer = xTimerCreate("soilMoistureTimer", pdMS_TO_TICKS(SOIL_MOISTURE_TIMER_MS), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(onSoilMoistureTimerTriggered));
 }
 
 void setupOAT()
@@ -234,15 +222,56 @@ int GetRSSIasQuality(int rssi)
     return quality;
 }
 
+void sendInfoBegin()
+{
+    // the soil-moisture sensor need a moment to for get the correct value
+    xTimerStart(soilMoistureTimer, 0);
+}
+
+void sendInfoEnd()
+{
+    DynamicJsonDocument doc(1024);
+    doc["version"] = version;
+
+    uint16_t soilMoistureValue = analogRead(SOIL_MOISTURE_SENSOR_PIN);
+    doc["soil-moisture"] = soilMoistureValue;
+
+    JsonObject system = doc.createNestedObject("system");
+    system["chipID"] = ESP.getEfuseMac();
+    system["freeHeap"] = ESP.getFreeHeap();
+
+    // TODO add battery info
+
+    // network
+    JsonObject network = doc.createNestedObject("network");
+    network["wifirssi"] = WiFi.RSSI();
+    network["wifiquality"] = GetRSSIasQuality(WiFi.RSSI());
+    network["wifissid"] = WiFi.SSID();
+    network["ip"] = WiFi.localIP().toString();
+
+    // weather
+    JsonObject weather = doc.createNestedObject("weather");
+    weather["temperature"] = bme.readTemperature();
+    weather["humidity"] = bme.readHumidity();
+    weather["pressure"] = bme.readPressure() / 100.0F;            // in hPa
+    weather["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA); // in m
+
+    String JS;
+    serializeJson(doc, JS);
+
+    mqttClient.publish("wateringsystem/client/out/info", 1, false, JS.c_str());
+}
+
 void processingMessage(String channel, DynamicJsonDocument doc)
 {
     if (channel.equals("info"))
     {
-        sendInfo();
+        sendInfoBegin();
     }
     else if (channel.equals("watering"))
     {
-        // TODO implement waterfing for x seconds
+        unsigned long seconds = doc["time"].as<unsigned long>();
+        startWaterpump(seconds);
     }
     else if (channel.equals("sleep"))
     {
@@ -251,8 +280,32 @@ void processingMessage(String channel, DynamicJsonDocument doc)
     }
 }
 
-void sleep(unsigned long time)
+void sleep(unsigned long seconds)
 {
-    esp_sleep_enable_timer_wakeup(time * 1000000);
+    esp_sleep_enable_timer_wakeup(seconds * 1000000);
     esp_deep_sleep_start();
+}
+
+void startWaterpump(unsigned long seconds)
+{
+    xTimerChangePeriod(waterpumpTimer, pdMS_TO_TICKS(1000 * seconds), 0);
+    xTimerStart(waterpumpTimer, 0);
+
+    // start watering
+    digitalWrite(WATERPUMP_PIN, HIGH);
+}
+
+void onWaterpumpTimerTriggered()
+{
+    // finished watering
+
+    // stop watering
+    digitalWrite(WATERPUMP_PIN, LOW);
+}
+
+void onSoilMoistureTimerTriggered()
+{
+    // finished waiting for soil-moisture sensor
+
+    sendInfoEnd();
 }
