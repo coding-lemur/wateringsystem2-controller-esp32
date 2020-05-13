@@ -3,7 +3,10 @@
 #include <AsyncMqttClient.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
+#include <ArduinoJson.h>
 #include "config.h"
+
+String version = "0.1.0 beta";
 
 AsyncMqttClient mqttClient;
 TimerHandle_t mqttReconnectTimer;
@@ -77,6 +80,32 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     Serial.println(total);
 }
 
+void sendInfo()
+{
+    DynamicJsonDocument doc(1024);
+    doc["version"] = version;
+    doc["chipID"] = ESP.getEfuseMac();
+    doc["freeHeap"] = ESP.getFreeHeap();
+
+    // network
+    JsonObject network = doc.createNestedObject("network");
+    network["wifirssi"] = WiFi.RSSI();
+    network["wifiquality"] = GetRSSIasQuality(WiFi.RSSI());
+    network["wifissid"] = WiFi.SSID();
+    network["ip"] = WiFi.localIP().toString();
+
+    // room weather
+    JsonObject weather = doc.createNestedObject("weather");
+    weather["temperature"] = bme.readTemperature();
+    weather["humidity"] = bme.readHumidity();
+    weather["pressure"] = bme.readPressure() / 100.0F; // in hPa
+
+    String JS;
+    serializeJson(doc, JS);
+
+    mqttClient.publish("watering-system/client/out/info", 1, false, JS.c_str());
+}
+
 void connectToWifi()
 {
     Serial.println("Connecting to Wi-Fi...");
@@ -117,8 +146,37 @@ void setup()
 
     connectToWifi();
 
+    setupOAT();
+    setupBME208();
+}
+
+void loop()
+{
+    Serial.print("Temperature = ");
+    Serial.print(bme.readTemperature());
+    Serial.println(" *C");
+
+    Serial.print("Pressure = ");
+
+    Serial.print(bme.readPressure() / 100.0F);
+    Serial.println(" hPa");
+
+    Serial.print("Approx. Altitude = ");
+    Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
+    Serial.println(" m");
+
+    Serial.print("Humidity = ");
+    Serial.print(bme.readHumidity());
+    Serial.println(" %");
+
+    Serial.println();
+}
+
+void setupOAT()
+{
     ArduinoOTA.onStart([]() {
                   String type;
+
                   if (ArduinoOTA.getCommand() == U_FLASH)
                   {
                       type = "sketch";
@@ -161,16 +219,44 @@ void setup()
             }
         })
         .begin();
-
-    if (!bme.begin(0x77, &Wire))
-    {
-        Serial.println("Could not find a valid BME280 sensor, check wiring!");
-        while (1)
-            ;
-    }
 }
 
-void loop()
+void setupBME208()
 {
-    // put your main code here, to run repeatedly:
+    /*while (!bme.begin())
+    {
+        Serial.println("Could not find BME280I2C sensor!");
+        delay(1000);
+    }
+
+    switch (bme.chipModel())
+    {
+    case BME280::ChipModel_BME280:
+        Serial.println("Found BME280 sensor! Success.");
+        break;
+    case BME280::ChipModel_BMP280:
+        Serial.println("Found BMP280 sensor! No Humidity available.");
+        break;
+    default:
+        Serial.println("Found UNKNOWN sensor! Error!");
+    }*/
+}
+
+int GetRSSIasQuality(int rssi)
+{
+    int quality = 0;
+
+    if (rssi <= -100)
+    {
+        quality = 0;
+    }
+    else if (rssi >= -50)
+    {
+        quality = 100;
+    }
+    else
+    {
+        quality = 2 * (rssi + 100);
+    }
+    return quality;
 }
