@@ -98,7 +98,8 @@ void sendInfo()
     JsonObject weather = doc.createNestedObject("weather");
     weather["temperature"] = bme.readTemperature();
     weather["humidity"] = bme.readHumidity();
-    weather["pressure"] = bme.readPressure() / 100.0F; // in hPa
+    weather["pressure"] = bme.readPressure() / 100.0F;            // in hPa
+    weather["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA); // in m
 
     String JS;
     serializeJson(doc, JS);
