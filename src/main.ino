@@ -46,7 +46,7 @@ void onMqttConnect(bool sessionPresent)
     mqttClient.subscribe("wateringsystem/client/in/#", 1);
     mqttClient.publish("wateringsystem/client/out/connected", 1, false);
 
-    sendInfoBegin();
+    sendInfo();
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -110,9 +110,6 @@ void setup()
 
     mqttClient.onConnect(onMqttConnect);
     mqttClient.onDisconnect(onMqttDisconnect);
-    /*mqttClient.onSubscribe(onMqttSubscribe);
-    mqttClient.onUnsubscribe(onMqttUnsubscribe);
-    mqttClient.onPublish(onMqttPublish);*/
     mqttClient.onMessage(onMqttMessage);
     mqttClient.setServer(MQTT_HOST, MQTT_PORT);
 
@@ -222,19 +219,10 @@ int GetRSSIasQuality(int rssi)
     return quality;
 }
 
-void sendInfoBegin()
-{
-    // the soil-moisture sensor need a moment to for get the correct value
-    xTimerStart(soilMoistureTimer, 0);
-}
-
-void sendInfoEnd()
+void sendInfo()
 {
     DynamicJsonDocument doc(1024);
     doc["version"] = version;
-
-    uint16_t soilMoistureValue = analogRead(SOIL_MOISTURE_SENSOR_PIN);
-    doc["soil-moisture"] = soilMoistureValue;
 
     JsonObject system = doc.createNestedObject("system");
     system["chipID"] = ESP.getEfuseMac();
@@ -266,7 +254,7 @@ void processingMessage(String channel, DynamicJsonDocument doc)
 {
     if (channel.equals("info"))
     {
-        sendInfoBegin();
+        sendInfo();
     }
     else if (channel.equals("watering"))
     {
@@ -278,6 +266,23 @@ void processingMessage(String channel, DynamicJsonDocument doc)
         unsigned long seconds = doc["time"].as<unsigned long>();
         sleep(seconds);
     }
+    else if (channel.equals("get-soil-moisture"))
+    {
+        loadSoilMoistureValueAsync();
+    }
+}
+
+void loadSoilMoistureValueAsync()
+{
+    // the soil-moisture sensor need a moment to for get the correct value
+
+    if (xTimerIsTimerActive(soilMoistureTimer) == pdTRUE)
+    {
+        return;
+    }
+
+    // start timer -> wait and load value
+    xTimerStart(soilMoistureTimer, 0);
 }
 
 void sleep(unsigned long seconds)
@@ -288,6 +293,12 @@ void sleep(unsigned long seconds)
 
 void startWaterpump(unsigned long seconds)
 {
+    if (xTimerIsTimerActive(waterpumpTimer) == pdTRUE)
+    {
+        return;
+    }
+
+    // start timer for stop waterpump after specific time
     xTimerChangePeriod(waterpumpTimer, pdMS_TO_TICKS(1000 * seconds), 0);
     xTimerStart(waterpumpTimer, 0);
 
@@ -307,5 +318,9 @@ void onSoilMoistureTimerTriggered()
 {
     // finished waiting for soil-moisture sensor
 
-    sendInfoEnd();
+    uint16_t soilMoistureValue = analogRead(SOIL_MOISTURE_SENSOR_PIN);
+    char charBuf[10];
+    String(soilMoistureValue).toCharArray(charBuf, 50);
+
+    mqttClient.publish("wateringsystem/client/out/soil-moisture", 1, false, charBuf);
 }
