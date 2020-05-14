@@ -308,9 +308,7 @@ void startWaterpump(unsigned long seconds)
 
 void onWaterpumpTimerTriggered()
 {
-    // finished watering
-
-    // stop watering
+    // finished watering -> stop watering
     digitalWrite(WATERPUMP_PIN, LOW);
 }
 
