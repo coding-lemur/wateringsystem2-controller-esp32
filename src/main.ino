@@ -1,3 +1,4 @@
+#include <WiFi.h>
 #include <Arduino.h>
 #include <ArduinoOTA.h>
 #include <AsyncMqttClient.h>
@@ -5,6 +6,12 @@
 #include <Adafruit_BME280.h>
 #include <ArduinoJson.h>
 #include "config.h"
+
+extern "C"
+{
+#include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
+}
 
 String version = "0.1.0 beta";
 
