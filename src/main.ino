@@ -84,6 +84,7 @@ void connectToWifi()
 {
     Serial.println("Connecting to Wi-Fi...");
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    WiFi.setHostname(HOSTNAME);
 
     // Wait for the Wi-Fi to connect
     while (WiFi.status() != WL_CONNECTED)
