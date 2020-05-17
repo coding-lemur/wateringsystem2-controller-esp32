@@ -1,5 +1,4 @@
 #include <WiFi.h>
-#include <Arduino.h>
 #include <ArduinoOTA.h>
 #include <AsyncMqttClient.h>
 #include <Adafruit_Sensor.h>
@@ -90,14 +89,16 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 void connectToWifi()
 {
     Serial.println("Connecting to Wi-Fi...");
+    WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     WiFi.setHostname(HOSTNAME);
 
     // Wait for the Wi-Fi to connect
-    while (WiFi.status() != WL_CONNECTED)
+    while (WiFi.waitForConnectResult() != WL_CONNECTED)
     {
-        delay(500);
-        Serial.print('.');
+        Serial.println("Connection Failed! Rebooting...");
+        delay(5000);
+        ESP.restart();
     }
 }
 
@@ -123,12 +124,13 @@ void setup()
 
     connectToWifi();
 
-    setupOAT();
+    setupOTA();
     setupBME208();
 }
 
 void loop()
 {
+    ArduinoOTA.handle();
 }
 
 void setupPins()
@@ -145,25 +147,27 @@ void setupTimers()
     soilMoistureTimer = xTimerCreate("soilMoistureTimer", pdMS_TO_TICKS(SOIL_MOISTURE_TIMER_MS), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(onSoilMoistureTimerTriggered));
 }
 
-void setupOAT()
+void setupOTA()
 {
-    ArduinoOTA.onStart([]() {
-                  String type;
+    ArduinoOTA
+        .setHostname(HOSTNAME)
+        .onStart([]() {
+            String type;
 
-                  if (ArduinoOTA.getCommand() == U_FLASH)
-                  {
-                      type = "sketch";
-                  }
-                  else
-                  { // U_FS
-                      type = "filesystem";
-                  }
+            if (ArduinoOTA.getCommand() == U_FLASH)
+            {
+                type = "sketch";
+            }
+            else
+            { // U_FS
+                type = "filesystem";
+            }
 
-                  // NOTE: if updating FS this would be the place to unmount FS using FS.end()
-                  Serial.println("Start updating " + type);
+            // NOTE: if updating FS this would be the place to unmount FS using FS.end()
+            Serial.println("Start updating " + type);
 
-                  isUpdating = true;
-              })
+            isUpdating = true;
+        })
         .onEnd([]() {
             Serial.println("\nEnd");
 
