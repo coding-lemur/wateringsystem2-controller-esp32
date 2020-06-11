@@ -1,16 +1,16 @@
 #include <WiFi.h>
-#include <ArduinoOTA.h>
+//#include <ArduinoOTA.h>
 #include <AsyncMqttClient.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <ArduinoJson.h>
 #include "config.h"
 
-extern "C"
+/*extern "C"
 {
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
-}
+}*/
 
 String version = "0.1.0 beta";
 
@@ -27,7 +27,7 @@ Adafruit_BME280 bme; // I2C
 // states
 bool isUpdating = false;
 
-void WiFiEvent(WiFiEvent_t event)
+void onWiFiEvent(WiFiEvent_t event)
 {
     Serial.printf("[WiFi-event] event: %d\n", event);
 
@@ -72,33 +72,39 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
         return;
     }
 
-    String s_payload = String(payload);
-    String s_topic = String(topic);
-    int last = s_topic.lastIndexOf("/") + 1;
-    String channel = s_topic.substring(last);
+    try
+    {
+        String s_payload = String(payload);
+        String s_topic = String(topic);
+        int last = s_topic.lastIndexOf("/") + 1;
+        String channel = s_topic.substring(last);
 
-    DynamicJsonDocument doc(1024);
-    deserializeJson(doc, s_payload);
+        DynamicJsonDocument doc(1024);
+        deserializeJson(doc, s_payload);
 
-    Serial.println("MQTT topic: " + s_topic);
-    Serial.println("MQTT payload: " + s_payload);
+        Serial.println("MQTT topic: " + s_topic);
+        Serial.println("MQTT payload: " + s_payload);
 
-    processingMessage(channel, doc);
+        processingMessage(channel, doc);
+    }
+    catch (const std::exception &e)
+    {
+    }
 }
 
 void connectToWifi()
 {
     Serial.println("Connecting to Wi-Fi...");
+
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     WiFi.setHostname(HOSTNAME);
 
     // Wait for the Wi-Fi to connect
-    while (WiFi.waitForConnectResult() != WL_CONNECTED)
+    while (WiFi.status() != WL_CONNECTED)
     {
-        Serial.println("Connection Failed! Rebooting...");
-        delay(5000);
-        ESP.restart();
+        delay(1000);
+        Serial.println(".");
     }
 }
 
@@ -115,22 +121,25 @@ void setup()
     setupPins();
     setupTimers();
 
-    WiFi.onEvent(WiFiEvent);
+    WiFi.onEvent(onWiFiEvent);
 
     mqttClient.onConnect(onMqttConnect);
     mqttClient.onDisconnect(onMqttDisconnect);
     mqttClient.onMessage(onMqttMessage);
     mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+    mqttClient.setCredentials(MQTT_USER, MQTT_PASSWORD);
 
     connectToWifi();
 
-    setupOTA();
-    setupBME208();
+    //setupOTA();
+    //setupBME208();
 }
 
 void loop()
 {
-    ArduinoOTA.handle();
+    //ArduinoOTA.handle();
+
+    Serial.println(WiFi.localIP().toString());
 }
 
 void setupPins()
@@ -142,14 +151,14 @@ void setupPins()
 void setupTimers()
 {
     mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
-    wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
-    waterpumpTimer = xTimerCreate("waterpumpTimer", pdMS_TO_TICKS(1000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(onWaterpumpTimerTriggered));
-    soilMoistureTimer = xTimerCreate("soilMoistureTimer", pdMS_TO_TICKS(SOIL_MOISTURE_TIMER_MS), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(onSoilMoistureTimerTriggered));
+    wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)1, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
+    waterpumpTimer = xTimerCreate("waterpumpTimer", pdMS_TO_TICKS(1000), pdFALSE, (void *)2, reinterpret_cast<TimerCallbackFunction_t>(onWaterpumpTimerTriggered));
+    soilMoistureTimer = xTimerCreate("soilMoistureTimer", pdMS_TO_TICKS(SOIL_MOISTURE_TIMER_MS), pdFALSE, (void *)3, reinterpret_cast<TimerCallbackFunction_t>(onSoilMoistureTimerTriggered));
 }
 
 void setupOTA()
 {
-    ArduinoOTA
+    /*ArduinoOTA
         .setHostname(HOSTNAME)
         .onStart([]() {
             String type;
@@ -199,7 +208,7 @@ void setupOTA()
                 Serial.println("End Failed");
             }
         })
-        .begin();
+        .begin();*/
 }
 
 void setupBME208()
@@ -250,11 +259,12 @@ void sendInfo()
     network["ip"] = WiFi.localIP().toString();
 
     // weather
-    JsonObject weather = doc.createNestedObject("weather");
+    /*JsonObject weather = doc.createNestedObject("weather");
     weather["temperature"] = bme.readTemperature();
     weather["humidity"] = bme.readHumidity();
     weather["pressure"] = bme.readPressure() / 100.0F;            // in hPa
     weather["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA); // in m
+    */
 
     String JS;
     serializeJson(doc, JS);
@@ -276,7 +286,7 @@ void processingMessage(String channel, DynamicJsonDocument doc)
     else if (channel.equals("sleep"))
     {
         unsigned long seconds = doc["time"].as<unsigned long>();
-        sleep(seconds);
+        goSleep(seconds);
     }
     else if (channel.equals("get-soil-moisture"))
     {
@@ -297,7 +307,7 @@ void loadSoilMoistureValueAsync()
     xTimerStart(soilMoistureTimer, 0);
 }
 
-void sleep(unsigned long seconds)
+void goSleep(unsigned long seconds)
 {
     esp_sleep_enable_timer_wakeup(seconds * 1000000);
     esp_deep_sleep_start();

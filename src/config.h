@@ -3,8 +3,10 @@
 
 #define HOSTNAME "wateringsystem"
 
-#define MQTT_HOST IPAddress(192, 168, 1, 10)
+#define MQTT_HOST "mqtt.your-server.com" # or IPAddress(192, 168, 1, 10)
 #define MQTT_PORT 1883
+#define MQTT_USER "mqttuser"
+#define MQTT_PASSWORD "12345"
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
