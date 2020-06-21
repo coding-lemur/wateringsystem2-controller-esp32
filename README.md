@@ -2,7 +2,7 @@
 
 ## Status
 
-:construction: Still in development! No final version at the moment! :construction_worker: :building_constructio
+:construction: Still in development! No final version at the moment! :construction_worker: :building_construction:
 
 ## Description
 
