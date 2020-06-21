@@ -33,6 +33,6 @@ This controller is the heart of my new wateringsystem.
 - [x] soldering first prototype of the sketch
 - [ ] test firmware
 - [ ] test OTA updates
-- [ ] create example controll flow with [Node-RED](https://nodered.org/)
+- [ ] create example flow with [Node-RED](https://nodered.org/)
 - [ ] add video doc
 - [ ] add WifiManager to easy setup
