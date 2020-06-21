@@ -16,7 +16,7 @@ This controller is the heart of my new wateringsystem.
 - Monitoring th soil moisture of the plant
 - Monitoring of energy consumption
 - super long deepsleep times to save energy
-- easy to configurable with the help of node-red
+- easy to configurable with the help of [Node-RED](https://nodered.org/)
 - Controllable via MQTT
 - widely-used sensors
 - completly asynchron programming
@@ -33,6 +33,6 @@ This controller is the heart of my new wateringsystem.
 - [x] soldering first prototype of the sketch
 - [ ] test firmware
 - [ ] test OTA updates
-- [ ] create example controll flow with node-red
+- [ ] create example controll flow with [Node-RED](https://nodered.org/)
 - [ ] add video doc
 - [ ] add WifiManager to easy setup
