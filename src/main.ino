@@ -132,7 +132,7 @@ void setup()
     connectToWifi();
 
     //setupOTA();
-    //setupBME208();
+    setupBME208();
 }
 
 void loop()
@@ -259,12 +259,11 @@ void sendInfo()
     network["ip"] = WiFi.localIP().toString();
 
     // weather
-    /*JsonObject weather = doc.createNestedObject("weather");
+    JsonObject weather = doc.createNestedObject("weather");
     weather["temperature"] = bme.readTemperature();
     weather["humidity"] = bme.readHumidity();
     weather["pressure"] = bme.readPressure() / 100.0F;            // in hPa
     weather["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA); // in m
-    */
 
     String JS;
     serializeJson(doc, JS);
@@ -340,7 +339,7 @@ void onSoilMoistureTimerTriggered()
 
     uint16_t soilMoistureValue = analogRead(SOIL_MOISTURE_SENSOR_PIN);
     char charBuf[10];
-    String(soilMoistureValue).toCharArray(charBuf, 50);
+    String(soilMoistureValue).toCharArray(charBuf, 10);
 
     mqttClient.publish("wateringsystem/client/out/soil-moisture", 1, false, charBuf);
 }
