@@ -34,5 +34,6 @@ This controller is the heart of my new wateringsystem.
 - [ ] test firmware
 - [ ] test OTA updates
 - [ ] create example flow with [Node-RED](https://nodered.org/)
+- [ ] add part list
 - [ ] add video doc
 - [ ] add WifiManager to easy setup
