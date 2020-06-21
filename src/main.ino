@@ -3,6 +3,7 @@
 #include <AsyncMqttClient.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
+#include <Adafruit_INA219.h>
 #include <ArduinoJson.h>
 #include "config.h"
 
@@ -23,6 +24,7 @@ TimerHandle_t waterpumpTimer;
 TimerHandle_t soilMoistureTimer;
 
 Adafruit_BME280 bme; // I2C
+Adafruit_INA219 ina219;
 
 // states
 bool isUpdating = false;
@@ -133,6 +135,7 @@ void setup()
 
     //setupOTA();
     setupBME208();
+    setupIna219();
 }
 
 void loop()
@@ -216,8 +219,20 @@ void setupBME208()
     if (!bme.begin(0x77, &Wire))
     {
         Serial.println("Could not find a valid BME280 sensor, check wiring!");
-        while (1)
-            ;
+        /*while (1);*/
+    }
+}
+
+void setupIna219()
+{
+    if (!ina219.begin())
+    {
+        Serial.println("Failed to find INA219 chip");
+
+        /*while (1)
+        {
+            delay(10);
+        }*/
     }
 }
 
@@ -249,7 +264,14 @@ void sendInfo()
     system["chipID"] = ESP.getEfuseMac();
     system["freeHeap"] = ESP.getFreeHeap();
 
-    // TODO add battery info
+    JsonObject power = doc.createNestedObject("power");
+    float busvoltage = ina219.getBusVoltage_V();
+    float shuntvoltage = ina219.getShuntVoltage_mV();
+    power["shuntVoltage"] = shuntvoltage;                      // in mV
+    power["busVoltage"] = busvoltage;                          // in V
+    power["current"] = ina219.getCurrent_mA();                 // in mA
+    power["power"] = ina219.getPower_mW();                     // in mW
+    power["loadVoltage"] = busvoltage + (shuntvoltage / 1000); // in V
 
     // network
     JsonObject network = doc.createNestedObject("network");
