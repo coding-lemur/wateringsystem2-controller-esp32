@@ -2,7 +2,9 @@
 
 ## Status
 
-:construction: Still in development! No final version at the moment! :construction_worker: :building_construction:
+:construction: **Still in development!** :construction:
+
+No final version at the moment! :construction_worker: :building_construction:
 
 ## Description
 
@@ -24,3 +26,13 @@ This controller is the heart of my new wateringsystem.
 ## Sketch
 
 ![sketch](/docs/sketch_bb.png)
+
+## TODOs
+
+- [x] buy sensor and ESP32
+- [x] soldering first prototype of the sketch
+- [ ] test firmware
+- [ ] test OTA updates
+- [ ] create example controll flow with node-red
+- [ ] add video doc
+- [ ] add WifiManager to easy setup
