@@ -261,7 +261,7 @@ void sendInfo()
     doc["version"] = version;
 
     JsonObject system = doc.createNestedObject("system");
-    system["chipID"] = ESP.getEfuseMac();
+    //system["chipID"] = ESP.getEfuseMac();
     system["freeHeap"] = ESP.getFreeHeap();
 
     JsonObject power = doc.createNestedObject("power");
@@ -342,7 +342,7 @@ void startWaterpump(unsigned long seconds)
     }
 
     // start timer for stop waterpump after specific time
-    xTimerChangePeriod(waterpumpTimer, pdMS_TO_TICKS(1000 * seconds), 0);
+    xTimerChangePeriod(waterpumpTimer, pdMS_TO_TICKS(seconds * 1000), 0);
     xTimerStart(waterpumpTimer, 0);
 
     // start watering
