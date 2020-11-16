@@ -1,3 +1,4 @@
+#include <Wire.h>
 #include <WiFi.h>
 //#include <ArduinoOTA.h>
 #include <AsyncMqttClient.h>
@@ -253,7 +254,7 @@ void setupPins()
     pinMode(SOIL_MOISTURE_SENSOR_PIN, INPUT);
 
     // default waterpump inactive
-    digitalWrite(WATERPUMP_PIN, LOW);
+    //digitalWrite(WATERPUMP_PIN, LOW);
 }
 
 void onWaterpumpTimerTriggered()
@@ -281,9 +282,9 @@ void setupTimers()
     soilMoistureTimer = xTimerCreate("soilMoistureTimer", pdMS_TO_TICKS(SOIL_MOISTURE_TIMER_MS), pdFALSE, (void *)3, reinterpret_cast<TimerCallbackFunction_t>(onSoilMoistureTimerTriggered));
 }
 
-void setupBME208()
+void setupBME280()
 {
-    if (!bme.begin(0x77, &Wire))
+    if (!bme.begin(0x76))
     {
         Serial.println("Could not find a valid BME280 sensor, check wiring!");
         /*while (1);*/
@@ -363,7 +364,7 @@ void setup()
     connectToWifi();
 
     //setupOTA();
-    setupBME208();
+    setupBME280();
     setupIna219();
 }
 
