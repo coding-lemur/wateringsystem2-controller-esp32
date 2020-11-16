@@ -29,6 +29,9 @@ Adafruit_INA219 ina219;
 // states
 bool isUpdating = false;
 
+// (old) timers
+unsigned long lastInfoSend = 0;
+
 void connectToMqtt()
 {
     Serial.println("Connecting to MQTT...");
@@ -110,6 +113,8 @@ void sendInfo()
     serializeJson(doc, JS);
 
     mqttClient.publish("wateringsystem/client/out/info", 1, false, JS.c_str());
+
+    lastInfoSend = millis();
 }
 
 void onMqttConnect(bool sessionPresent)
@@ -246,6 +251,9 @@ void setupPins()
 {
     pinMode(WATERPUMP_PIN, OUTPUT);
     pinMode(SOIL_MOISTURE_SENSOR_PIN, INPUT);
+
+    // default waterpump inactive
+    digitalWrite(WATERPUMP_PIN, LOW);
 }
 
 void onWaterpumpTimerTriggered()
@@ -364,4 +372,9 @@ void loop()
     //ArduinoOTA.handle();
 
     Serial.println(WiFi.localIP().toString());
+
+    if (lastInfoSend == 0 || millis() - lastInfoSend >= 45000) // every 45 seconds
+    {
+        sendInfo();
+    }
 }
