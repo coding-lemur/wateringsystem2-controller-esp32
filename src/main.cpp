@@ -8,11 +8,11 @@
 #include <ArduinoJson.h>
 #include "config.h"
 
-/*extern "C"
+extern "C"
 {
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
-}*/
+}
 
 String version = "0.1.0 beta";
 
@@ -24,11 +24,12 @@ TimerHandle_t wifiReconnectTimer;
 TimerHandle_t waterpumpTimer;
 TimerHandle_t soilMoistureTimer;
 
-Adafruit_BME280 bme; // I2C
+Adafruit_BME280 bme;
 Adafruit_INA219 ina219;
 
 // states
 bool isUpdating = false;
+bool wifi_connected = false;
 
 // (old) timers
 unsigned long lastInfoSend = 0;
@@ -45,16 +46,31 @@ void onWiFiEvent(WiFiEvent_t event)
 
     switch (event)
     {
+    case SYSTEM_EVENT_STA_START:
+        //set sta hostname here
+        WiFi.setHostname(HOSTNAME);
+
+        break;
+
     case SYSTEM_EVENT_STA_GOT_IP:
+        wifi_connected = true;
+
         Serial.println("WiFi connected");
         Serial.println("IP address: ");
         Serial.println(WiFi.localIP());
+
         connectToMqtt();
+
         break;
+
     case SYSTEM_EVENT_STA_DISCONNECTED:
+        wifi_connected = false;
+
         Serial.println("WiFi lost connection");
+
         xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
         xTimerStart(wifiReconnectTimer, 0);
+
         break;
     }
 }
@@ -221,11 +237,9 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
 void connectToWifi()
 {
-    Serial.println("Connecting to Wi-Fi...");
+    Serial.println("Connecting to wifi...");
 
-    WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    WiFi.setHostname(HOSTNAME);
 
     // Wait for the Wi-Fi to connect
     while (WiFi.status() != WL_CONNECTED)
@@ -233,6 +247,8 @@ void connectToWifi()
         delay(1000);
         Serial.println(".");
     }
+
+    Serial.println("connected to wifi");
 }
 
 void setupIna219()
@@ -252,9 +268,6 @@ void setupPins()
 {
     pinMode(WATERPUMP_PIN, OUTPUT);
     pinMode(SOIL_MOISTURE_SENSOR_PIN, INPUT);
-
-    // default waterpump inactive
-    //digitalWrite(WATERPUMP_PIN, LOW);
 }
 
 void onWaterpumpTimerTriggered()
@@ -284,7 +297,7 @@ void setupTimers()
 
 void setupBME280()
 {
-    if (!bme.begin(0x76))
+    if (!bme.begin(0x77))
     {
         Serial.println("Could not find a valid BME280 sensor, check wiring!");
         /*while (1);*/
@@ -350,10 +363,11 @@ void setup()
 {
     Serial.begin(115200);
 
+    Wire.begin();
+    //Wire.setClock(400000); //Increase to fast I2C speed!
+
     setupPins();
     setupTimers();
-
-    WiFi.onEvent(onWiFiEvent);
 
     mqttClient.onConnect(onMqttConnect);
     mqttClient.onDisconnect(onMqttDisconnect);
@@ -361,18 +375,36 @@ void setup()
     mqttClient.setServer(MQTT_HOST, MQTT_PORT);
     mqttClient.setCredentials(MQTT_USER, MQTT_PASSWORD);
 
-    connectToWifi();
-
     //setupOTA();
     setupBME280();
     setupIna219();
+
+    WiFi.disconnect(true); // delete old config
+    WiFi.onEvent(onWiFiEvent);
+    WiFi.mode(WIFI_STA);
+
+    connectToWifi();
 }
 
 void loop()
 {
     //ArduinoOTA.handle();
 
-    Serial.println(WiFi.localIP().toString());
+    //Serial.println(WiFi.localIP().toString());
+
+    /*Serial.print("temp= ");
+    Serial.print(bme.readTemperature());
+    Serial.println(" C");
+
+    Serial.print("bus voltage = ");
+    Serial.print(ina219.getBusVoltage_V());
+    Serial.println(" V");
+
+    Serial.print("current = ");
+    Serial.print(ina219.getCurrent_mA());
+    Serial.println(" mA");
+
+    delay(3000);*/
 
     if (lastInfoSend == 0 || millis() - lastInfoSend >= 45000) // every 45 seconds
     {
