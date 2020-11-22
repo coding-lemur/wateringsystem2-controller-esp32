@@ -1,4 +1,4 @@
-#include <Wire.h>
+//#include <Wire.h>
 #include <WiFi.h>
 //#include <ArduinoOTA.h>
 #include <AsyncMqttClient.h>
@@ -6,6 +6,7 @@
 #include <Adafruit_BME280.h>
 #include <Adafruit_INA219.h>
 #include <ArduinoJson.h>
+
 #include "config.h"
 
 extern "C"
@@ -297,7 +298,7 @@ void setupTimers()
 
 void setupBME280()
 {
-    if (!bme.begin(0x77))
+    if (!bme.begin(0x76))
     {
         Serial.println("Could not find a valid BME280 sensor, check wiring!");
         /*while (1);*/
@@ -361,9 +362,9 @@ void setupOTA()
 
 void setup()
 {
-    Serial.begin(115200);
+    Serial.begin(9600);
 
-    Wire.begin();
+    //Wire.begin();
     //Wire.setClock(400000); //Increase to fast I2C speed!
 
     setupPins();
