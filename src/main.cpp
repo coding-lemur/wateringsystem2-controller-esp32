@@ -47,12 +47,6 @@ void onWiFiEvent(WiFiEvent_t event)
 
     switch (event)
     {
-    case SYSTEM_EVENT_STA_START:
-        //set sta hostname here
-        WiFi.setHostname(HOSTNAME);
-
-        break;
-
     case SYSTEM_EVENT_STA_GOT_IP:
         wifi_connected = true;
 
@@ -383,6 +377,7 @@ void setup()
     WiFi.disconnect(true); // delete old config
     WiFi.onEvent(onWiFiEvent);
     WiFi.mode(WIFI_STA);
+    WiFi.setHostname(HOSTNAME);
 
     connectToWifi();
 }
