@@ -10,7 +10,7 @@
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
-#define SOIL_MOISTURE_TIMER_MS 3 * 60 * 1000 // in MS
+#define SOIL_MOISTURE_TIMER_MS 1 * 60 * 1000 // one minute
 
 // pins
 #define WATERPUMP_PIN GPIO_NUM_13
