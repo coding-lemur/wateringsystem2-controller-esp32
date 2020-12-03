@@ -77,6 +77,7 @@ Topic: wateringsystem/client/out/`command`
 - [x] soldering first prototype of the sketch
 - [ ] test firmware
 - [ ] test OTA updates
+- [ ] create housing (3D print)
 - [ ] create example flow with [Node-RED](https://nodered.org/)
 - [ ] add part list
 - [ ] add video doc
