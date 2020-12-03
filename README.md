@@ -23,6 +23,50 @@ This controller is the heart of my new wateringsystem.
 - host by your own: complete control over your data (no external cloud service needed)
 - OTA updates
 
+## MQTT API
+
+The whole module is controllable via MQTT protocol. So it's easy to integrate in existing SmartHome systems (like Home Assistant or Node-Red).
+
+### Incoming commands
+
+Topic: wateringsystem/client/in/`command`
+
+| command           | description                                                                                                                                 | payload              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| watering          | start watering for specific duration (in seconds!)                                                                                          | { duration: number } |
+| sleep             | start deep-sleep for specific duration (in seconds!)                                                                                        | { duration: number } |
+| get-soil-moisture | starts the measurement of the soil-moisture. After a time delay the value was sent via MQTT topic `wateringsystem/client/out/soil-moisture` | -                    |
+| info              | send info package                                                                                                                           | -                    |
+
+### Outcoming commands
+
+Topic: wateringsystem/client/out/`command`
+
+| command       | description                          | payload                                |
+| ------------- | ------------------------------------ | -------------------------------------- |
+| soil-moisture | analog value of soil-moisture sensor | number                                 |
+| info          | status info                          | complex JSON. See "info-state" chapter |
+
+#### Info state
+
+| field               | description                                                           | type   |
+| ------------------- | --------------------------------------------------------------------- | ------ |
+| version             | version number of module firmware                                     | string |
+| system.freeHeap     | free heap memory of CPU                                               | number |
+| power.shuntVoltage  | voltage between V- and V+ (in mV)                                     | number |
+| power.busVoltage    | voltage of power input pin (in V) (optimal value between 3.6 and 4.0) | number |
+| power.current       | current (in mA)                                                       | number |
+| power.power         | energy consumption (in mW)                                            | number |
+| power.loadVoltage   | (in V)                                                                | number |
+| network.wifiRssi    | wifi signal strength (RSSI)                                           | number |
+| network.wifiQuality | quality of signal strength (value between 0 and 100%)                 | number |
+| network.wifiSsid    | SSID of connected wifi                                                | string |
+| network.ip          | ip address of the module                                              | string |
+| weather.temperature | temperature of the BME280 sensore (in °C)                             | number |
+| weather.humidity    | humidity value of the BME280 sensor (in %)                            | number |
+| weather.pressure    | pressure of the BME280 sensor (in hPa )                               | number |
+| weather.altitude    | estimated altitude above sea level                                    | number |
+
 ## Sketch
 
 ![sketch](/docs/sketch_bb.png)
