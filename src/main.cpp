@@ -1,6 +1,6 @@
 //#include <Wire.h>
 #include <WiFi.h>
-//#include <ArduinoOTA.h>
+#include <ArduinoOTA.h>
 #include <AsyncMqttClient.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
@@ -305,7 +305,7 @@ void setupBME280()
 
 void setupOTA()
 {
-    /*ArduinoOTA
+    ArduinoOTA
         .setHostname(HOSTNAME)
         .onStart([]() {
             String type;
@@ -334,6 +334,7 @@ void setupOTA()
         })
         .onError([](ota_error_t error) {
             Serial.printf("Error[%u]: ", error);
+
             if (error == OTA_AUTH_ERROR)
             {
                 Serial.println("Auth Failed");
@@ -355,15 +356,12 @@ void setupOTA()
                 Serial.println("End Failed");
             }
         })
-        .begin();*/
+        .begin();
 }
 
 void setup()
 {
     Serial.begin(9600);
-
-    //Wire.begin();
-    //Wire.setClock(400000); //Increase to fast I2C speed!
 
     setupPins();
     setupTimers();
@@ -374,7 +372,7 @@ void setup()
     mqttClient.setServer(MQTT_HOST, MQTT_PORT);
     mqttClient.setCredentials(MQTT_USER, MQTT_PASSWORD);
 
-    //setupOTA();
+    setupOTA();
     setupBME280();
     setupIna219();
 
@@ -388,26 +386,13 @@ void setup()
 
 void loop()
 {
-    //ArduinoOTA.handle();
+    ArduinoOTA.handle();
 
-    //Serial.println(WiFi.localIP().toString());
-
-    /*Serial.print("temp= ");
-    Serial.print(bme.readTemperature());
-    Serial.println(" C");
-
-    Serial.print("bus voltage = ");
-    Serial.print(ina219.getBusVoltage_V());
-    Serial.println(" V");
-
-    Serial.print("current = ");
-    Serial.print(ina219.getCurrent_mA());
-    Serial.println(" mA");
-
-    delay(3000);*/
-
-    if (lastInfoSend == 0 || millis() - lastInfoSend >= 45000) // every 45 seconds
+    if (!isUpdating)
     {
-        sendInfo();
+        if (lastInfoSend == 0 || millis() - lastInfoSend >= 45000) // every 45 seconds
+        {
+            sendInfo();
+        }
     }
 }
