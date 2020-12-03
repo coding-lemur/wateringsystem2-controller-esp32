@@ -70,7 +70,7 @@ void onWiFiEvent(WiFiEvent_t event)
     }
 }
 
-int GetRSSIasQuality(int rssi)
+int GetRssiAsQuality(int rssi)
 {
     int quality = 0;
 
@@ -86,6 +86,7 @@ int GetRSSIasQuality(int rssi)
     {
         quality = 2 * (rssi + 100);
     }
+
     return quality;
 }
 
@@ -109,9 +110,10 @@ void sendInfo()
 
     // network
     JsonObject network = doc.createNestedObject("network");
-    network["wifirssi"] = WiFi.RSSI();
-    network["wifiquality"] = GetRSSIasQuality(WiFi.RSSI());
-    network["wifissid"] = WiFi.SSID();
+    int8_t rssi = WiFi.RSSI();
+    network["wifiRssi"] = rssi;
+    network["wifiQuality"] = GetRssiAsQuality(rssi);
+    network["wifiSsid"] = WiFi.SSID();
     network["ip"] = WiFi.localIP().toString();
 
     // weather
@@ -189,12 +191,12 @@ void processingMessage(String channel, DynamicJsonDocument doc)
     }
     else if (channel.equals("watering"))
     {
-        unsigned long seconds = doc["time"].as<unsigned long>();
+        unsigned long seconds = doc["duration"].as<unsigned long>();
         startWaterpump(seconds);
     }
     else if (channel.equals("sleep"))
     {
-        unsigned long seconds = doc["time"].as<unsigned long>();
+        unsigned long seconds = doc["duration"].as<unsigned long>();
         goSleep(seconds);
     }
     else if (channel.equals("get-soil-moisture"))
@@ -212,6 +214,8 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
     try
     {
+        // TODO add error handling (e.g. for illegal JSON format)
+
         String s_payload = String(payload);
         String s_topic = String(topic);
         int last = s_topic.lastIndexOf("/") + 1;
