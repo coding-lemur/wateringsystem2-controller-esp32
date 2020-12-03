@@ -57,7 +57,7 @@ Topic: wateringsystem/client/out/`command`
 | power.busVoltage    | voltage of power input pin (in V) (optimal value between 3.6 and 4.0) | number |
 | power.current       | current (in mA)                                                       | number |
 | power.power         | energy consumption (in mW)                                            | number |
-| power.loadVoltage   | (in V)                                                                | number |
+| power.loadVoltage   | load voltage (in V)                                                   | number |
 | network.wifiRssi    | wifi signal strength (RSSI)                                           | number |
 | network.wifiQuality | quality of signal strength (value between 0 and 100%)                 | number |
 | network.wifiSsid    | SSID of connected wifi                                                | string |
