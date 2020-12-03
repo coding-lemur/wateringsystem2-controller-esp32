@@ -36,7 +36,7 @@ Topic: wateringsystem/client/in/`command`
 | watering          | start watering for specific duration (in seconds!)                                                                                          | { duration: number } |
 | sleep             | start deep-sleep for specific duration (in seconds!)                                                                                        | { duration: number } |
 | get-soil-moisture | starts the measurement of the soil-moisture. After a time delay the value was sent via MQTT topic `wateringsystem/client/out/soil-moisture` | -                    |
-| info              | send info package                                                                                                                           | -                    |
+| info              | send info via MQTT topic `wateringsystem/client/out/info` package                                                                           | -                    |
 
 ### Outcoming commands
 
