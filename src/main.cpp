@@ -182,6 +182,11 @@ void startWaterpump(unsigned long seconds)
     digitalWrite(WATERPUMP_PIN, HIGH);
 }
 
+void stopWaterpump()
+{
+    digitalWrite(WATERPUMP_PIN, LOW);
+}
+
 void goSleep(unsigned long seconds)
 {
     if (seconds <= 0)
@@ -213,6 +218,16 @@ void processingMessage(String channel, DynamicJsonDocument doc)
     {
         unsigned long seconds = doc["duration"].as<unsigned long>();
         startWaterpump(seconds);
+    }
+    else if (channel.equals("cancel-watering"))
+    {
+        if (xTimerIsTimerActive(waterpumpTimer) == pdFALSE)
+        {
+            return;
+        }
+
+        xTimerStop(waterpumpTimer, 0);
+        stopWaterpump();
     }
     else if (channel.equals("sleep"))
     {
@@ -292,7 +307,7 @@ void setupPins()
 void onWaterpumpTimerTriggered()
 {
     // finished watering -> stop watering
-    digitalWrite(WATERPUMP_PIN, LOW);
+    stopWaterpump();
 }
 
 void onSoilMoistureTimerTriggered()
