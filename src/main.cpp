@@ -15,6 +15,8 @@ extern "C"
 #include "freertos/timers.h"
 }
 
+#define uS_TO_S_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */
+
 String version = "0.1.0 beta";
 
 AsyncMqttClient mqttClient;
@@ -66,6 +68,9 @@ void onWiFiEvent(WiFiEvent_t event)
         xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
         xTimerStart(wifiReconnectTimer, 0);
 
+        break;
+
+    default:
         break;
     }
 }
@@ -179,7 +184,17 @@ void startWaterpump(unsigned long seconds)
 
 void goSleep(unsigned long seconds)
 {
-    esp_sleep_enable_timer_wakeup(seconds * 1000000);
+    StaticJsonDocument<200> doc;
+    doc["duration"] = seconds;
+
+    String JS;
+    serializeJson(doc, JS);
+
+    mqttClient.publish("wateringsystem/client/out/sleep", 1, false, JS.c_str());
+
+    delay(500);
+
+    esp_sleep_enable_timer_wakeup(seconds * uS_TO_S_FACTOR);
     esp_deep_sleep_start();
 }
 
@@ -359,6 +374,41 @@ void setupOTA()
         .begin();
 }
 
+void detect_wakeup_reason()
+{
+    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+
+    switch (wakeup_reason)
+    {
+    case ESP_SLEEP_WAKEUP_EXT0:
+        Serial.println("Wakeup caused by external signal using RTC_IO");
+        break;
+
+    case ESP_SLEEP_WAKEUP_EXT1:
+        Serial.println("Wakeup caused by external signal using RTC_CNTL");
+        break;
+
+    case ESP_SLEEP_WAKEUP_TIMER:
+        Serial.println("Wakeup caused by timer");
+
+        mqttClient.publish("wateringsystem/client/out/wakeup", 1, false, "timer");
+
+        break;
+
+    case ESP_SLEEP_WAKEUP_TOUCHPAD:
+        Serial.println("Wakeup caused by touchpad");
+        break;
+
+    case ESP_SLEEP_WAKEUP_ULP:
+        Serial.println("Wakeup caused by ULP program");
+        break;
+
+    default:
+        Serial.printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason);
+        break;
+    }
+}
+
 void setup()
 {
     Serial.begin(9600);
@@ -383,6 +433,8 @@ void setup()
     connectToWifi();
 
     setupOTA();
+
+    detect_wakeup_reason();
 }
 
 void loop()
