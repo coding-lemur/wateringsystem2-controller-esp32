@@ -184,6 +184,11 @@ void startWaterpump(unsigned long seconds)
 
 void goSleep(unsigned long seconds)
 {
+    if (seconds <= 0)
+    {
+        return;
+    }
+
     StaticJsonDocument<200> doc;
     doc["duration"] = seconds;
 
