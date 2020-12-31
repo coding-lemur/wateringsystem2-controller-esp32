@@ -372,7 +372,6 @@ void setup()
     mqttClient.setServer(MQTT_HOST, MQTT_PORT);
     mqttClient.setCredentials(MQTT_USER, MQTT_PASSWORD);
 
-    setupOTA();
     setupBME280();
     setupIna219();
 
@@ -382,6 +381,8 @@ void setup()
     WiFi.setHostname(HOSTNAME);
 
     connectToWifi();
+
+    setupOTA();
 }
 
 void loop()
