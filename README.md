@@ -34,6 +34,7 @@ Topic: wateringsystem/client/in/`command`
 | command           | description                                                                                                                                 | payload              |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
 | watering          | start watering for specific duration (in seconds!)                                                                                          | { duration: number } |
+| cancel-watering   | abort watering                                                                                                                              | -                    |
 | sleep             | start deep-sleep for specific duration (in seconds!)                                                                                        | { duration: number } |
 | get-soil-moisture | starts the measurement of the soil-moisture. After a time delay the value was sent via MQTT topic `wateringsystem/client/out/soil-moisture` | -                    |
 | info              | send info via MQTT topic `wateringsystem/client/out/info` package                                                                           | -                    |
@@ -42,10 +43,12 @@ Topic: wateringsystem/client/in/`command`
 
 Topic: wateringsystem/client/out/`command`
 
-| command       | description                          | payload                                |
-| ------------- | ------------------------------------ | -------------------------------------- |
-| soil-moisture | analog value of soil-moisture sensor | number                                 |
-| info          | status info                          | complex JSON. See "info-state" chapter |
+| command       | description                              | payload                                |
+| ------------- | ---------------------------------------- | -------------------------------------- |
+| soil-moisture | analog value of soil-moisture sensor     | number                                 |
+| info          | status info                              | complex JSON. See "info-state" chapter |
+| sleep         | was send if sytem enter deep-sleep       | { duration: number }                   |
+| wakeup        | was send if sytem wakeup from deep-sleep | reason "timer"                         |
 
 #### Info state
 
@@ -75,8 +78,8 @@ Topic: wateringsystem/client/out/`command`
 
 - [x] buy sensor and ESP32
 - [x] soldering first prototype of the sketch
-- [ ] test firmware
-- [ ] test OTA updates
+- [x] test firmware
+- [x] test OTA updates
 - [ ] create housing (3D print)
 - [ ] create example flow with [Node-RED](https://nodered.org/)
 - [ ] add part list
