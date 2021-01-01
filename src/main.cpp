@@ -219,7 +219,7 @@ void processingMessage(String channel, DynamicJsonDocument doc)
         unsigned long seconds = doc["duration"].as<unsigned long>();
         startWaterpump(seconds);
     }
-    else if (channel.equals("cancel-watering"))
+    else if (channel.equals("abort-watering"))
     {
         if (xTimerIsTimerActive(waterpumpTimer) == pdFALSE)
         {
