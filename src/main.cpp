@@ -6,6 +6,8 @@
 #include <Adafruit_BME280.h>
 #include <Adafruit_INA219.h>
 #include <ArduinoJson.h>
+#include <SPIFFS.h>
+#include <WiFiSettings.h>
 
 #include "config.h"
 
@@ -36,6 +38,12 @@ bool wifi_connected = false;
 
 // (old) timers
 unsigned long lastInfoSend = 0;
+
+// settings
+String mqtt_host;
+uint16_t mqtt_port;
+String mqtt_user;
+String mqtt_password;
 
 void connectToMqtt()
 {
@@ -271,18 +279,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
 void connectToWifi()
 {
-    Serial.println("Connecting to wifi...");
-
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-    // Wait for the Wi-Fi to connect
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(1000);
-        Serial.println(".");
-    }
-
-    Serial.println("connected to wifi");
+    WiFiSettings.connect(true, 30);
 }
 
 void setupIna219()
@@ -341,7 +338,8 @@ void setupBME280()
 void setupOTA()
 {
     ArduinoOTA
-        .setHostname(HOSTNAME)
+        .setHostname(WiFiSettings.hostname.c_str())
+        .setPassword(WiFiSettings.password.c_str())
         .onStart([]() {
             String type;
 
@@ -432,23 +430,38 @@ void detect_wakeup_reason()
 void setup()
 {
     Serial.begin(9600);
+    SPIFFS.begin(true); // On first run, will format after failing to mount
 
     setupPins();
     setupTimers();
+    setupBME280();
+    setupIna219();
+
+    WiFi.onEvent(onWiFiEvent);
+
+    WiFiSettings.secure = true;
+    WiFiSettings.hostname = "wateringsystem-";
+    WiFiSettings.password = "water";
+
+    // Set callbacks to start OTA when the portal is active
+    WiFiSettings.onPortal = []() {
+        setupOTA();
+    };
+    WiFiSettings.onPortalWaitLoop = []() {
+        ArduinoOTA.handle();
+    };
+
+    // define custom settings
+    mqtt_host = WiFiSettings.string("mqtt_host", "localhost");
+    mqtt_port = WiFiSettings.integer("mqtt_port", 1883);
+    mqtt_user = WiFiSettings.string("mqtt_user");
+    mqtt_password = WiFiSettings.string("mqtt_password");
 
     mqttClient.onConnect(onMqttConnect);
     mqttClient.onDisconnect(onMqttDisconnect);
     mqttClient.onMessage(onMqttMessage);
-    mqttClient.setServer(MQTT_HOST, MQTT_PORT);
-    mqttClient.setCredentials(MQTT_USER, MQTT_PASSWORD);
-
-    setupBME280();
-    setupIna219();
-
-    WiFi.disconnect(true); // delete old config
-    WiFi.onEvent(onWiFiEvent);
-    WiFi.mode(WIFI_STA);
-    WiFi.setHostname(HOSTNAME);
+    mqttClient.setServer(mqtt_host.c_str(), mqtt_port);
+    mqttClient.setCredentials(mqtt_user.c_str(), mqtt_password.c_str());
 
     connectToWifi();
 
