@@ -118,17 +118,17 @@ void sendInfo()
     doc["version"] = version;
 
     JsonObject system = doc.createNestedObject("system");
-    //system["chipID"] = ESP.getEfuseMac();
+    system["chipID"] = ESPMAC;
     system["freeHeap"] = ESP.getFreeHeap();
 
-    JsonObject power = doc.createNestedObject("power");
+    JsonObject energy = doc.createNestedObject("energy");
     float busvoltage = ina219.getBusVoltage_V();
     float shuntvoltage = ina219.getShuntVoltage_mV();
-    power["shuntVoltage"] = shuntvoltage;                      // in mV
-    power["busVoltage"] = busvoltage;                          // in V
-    power["current"] = ina219.getCurrent_mA();                 // in mA
-    power["power"] = ina219.getPower_mW();                     // in mW
-    power["loadVoltage"] = busvoltage + (shuntvoltage / 1000); // in V
+    energy["shuntVoltage"] = shuntvoltage;                      // in mV
+    energy["busVoltage"] = busvoltage;                          // in V
+    energy["current"] = ina219.getCurrent_mA();                 // in mA
+    energy["power"] = ina219.getPower_mW();                     // in mW
+    energy["loadVoltage"] = busvoltage + (shuntvoltage / 1000); // in V
 
     // network
     JsonObject network = doc.createNestedObject("network");
