@@ -175,6 +175,15 @@ void loadSoilMoistureValueAsync()
     xTimerStart(soilMoistureTimer, 0);
 }
 
+void hardReset()
+{
+    SPIFFS.format();
+
+    delay(500);
+
+    ESP.restart();
+}
+
 void startWaterpump(unsigned long seconds)
 {
     if (xTimerIsTimerActive(waterpumpTimer) == pdTRUE)
@@ -245,6 +254,10 @@ void processingMessage(String channel, DynamicJsonDocument doc)
     else if (channel.equals("get-soil-moisture"))
     {
         loadSoilMoistureValueAsync();
+    }
+    else if (channel.equals("hard-reset"))
+    {
+        hardReset();
     }
 }
 
@@ -441,7 +454,7 @@ void setup()
 
     WiFiSettings.secure = true;
     WiFiSettings.hostname = "wateringsystem-";
-    WiFiSettings.password = "water";
+    WiFiSettings.password = "waaater";
 
     // Set callbacks to start OTA when the portal is active
     WiFiSettings.onPortal = []() {
@@ -449,6 +462,10 @@ void setup()
     };
     WiFiSettings.onPortalWaitLoop = []() {
         ArduinoOTA.handle();
+    };
+
+    WiFiSettings.onConfigSaved = []() {
+        ESP.restart();
     };
 
     // define custom settings
