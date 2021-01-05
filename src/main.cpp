@@ -17,7 +17,9 @@ extern "C"
 #include "freertos/timers.h"
 }
 
-#define uS_TO_S_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */
+#define Sprintf(f, ...) ({ char* s; asprintf(&s, f, __VA_ARGS__); String r = s; free(s); r; })
+#define ESPMAC (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique chip ID
+#define uS_TO_S_FACTOR 1000000                                  /* Conversion factor for micro seconds to seconds */
 
 String version = "0.1.0 beta";
 
@@ -103,6 +105,13 @@ int GetRssiAsQuality(int rssi)
     return quality;
 }
 
+const char *getMqttTopic(String part)
+{
+    String topic = "wateringsystem/client/" + ESPMAC + "/" + part;
+
+    return topic.c_str();
+}
+
 void sendInfo()
 {
     DynamicJsonDocument doc(1024);
@@ -139,15 +148,15 @@ void sendInfo()
     String JS;
     serializeJson(doc, JS);
 
-    mqttClient.publish("wateringsystem/client/out/info", 1, false, JS.c_str());
+    mqttClient.publish(getMqttTopic("out/info"), 1, false, JS.c_str());
 
     lastInfoSend = millis();
 }
 
 void onMqttConnect(bool sessionPresent)
 {
-    mqttClient.subscribe("wateringsystem/client/in/#", 1);
-    mqttClient.publish("wateringsystem/client/out/connected", 1, false);
+    mqttClient.subscribe(getMqttTopic("in/#"), 1);
+    mqttClient.publish(getMqttTopic("out/connected"), 1, false);
 
     sendInfo();
 }
@@ -217,7 +226,7 @@ void goSleep(unsigned long seconds)
     String JS;
     serializeJson(doc, JS);
 
-    mqttClient.publish("wateringsystem/client/out/sleep", 1, false, JS.c_str());
+    mqttClient.publish(getMqttTopic("out/sleep"), 1, false, JS.c_str());
 
     delay(500);
 
@@ -328,7 +337,7 @@ void onSoilMoistureTimerTriggered()
     char charBuf[10];
     String(soilMoistureValue).toCharArray(charBuf, 10);
 
-    mqttClient.publish("wateringsystem/client/out/soil-moisture", 1, false, charBuf);
+    mqttClient.publish(getMqttTopic("out/soil-moisture"), 1, false, charBuf);
 }
 
 void setupTimers()
@@ -422,7 +431,7 @@ void detect_wakeup_reason()
     case ESP_SLEEP_WAKEUP_TIMER:
         Serial.println("Wakeup caused by timer");
 
-        mqttClient.publish("wateringsystem/client/out/wakeup", 1, false, "timer");
+        mqttClient.publish(getMqttTopic("out/wakeup"), 1, false, "timer");
 
         break;
 
