@@ -55,12 +55,13 @@ Topic: wateringsystem/client/out/`command`
 | field               | description                                                           | type   |
 | ------------------- | --------------------------------------------------------------------- | ------ |
 | version             | version number of module firmware                                     | string |
+| system.chipID       | Unique ID of the device. Will used also in MQTT topics.               | string |
 | system.freeHeap     | free heap memory of CPU                                               | number |
-| power.shuntVoltage  | voltage between V- and V+ (in mV)                                     | number |
-| power.busVoltage    | voltage of power input pin (in V) (optimal value between 3.6 and 4.0) | number |
-| power.current       | current (in mA)                                                       | number |
-| power.power         | energy consumption (in mW)                                            | number |
-| power.loadVoltage   | load voltage (in V)                                                   | number |
+| energy.shuntVoltage | voltage between V- and V+ (in mV)                                     | number |
+| energy.busVoltage   | voltage of power input pin (in V) (optimal value between 3.6 and 4.0) | number |
+| energy.current      | current (in mA)                                                       | number |
+| energy.power        | energy consumption (in mW)                                            | number |
+| energy.loadVoltage  | load voltage (in V)                                                   | number |
 | network.wifiRssi    | wifi signal strength (RSSI)                                           | number |
 | network.wifiQuality | quality of signal strength (value between 0 and 100%)                 | number |
 | network.wifiSsid    | SSID of connected wifi                                                | string |
