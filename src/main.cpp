@@ -188,7 +188,7 @@ void hardReset()
 {
     SPIFFS.format();
 
-    delay(500);
+    delay(1000);
 
     ESP.restart();
 }
