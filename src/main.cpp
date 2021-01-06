@@ -463,7 +463,7 @@ void setup()
 
     WiFiSettings.secure = true;
     WiFiSettings.hostname = "wateringsystem-";
-    WiFiSettings.password = "waaater";
+    WiFiSettings.password = PASSWORD;
 
     // Set callbacks to start OTA when the portal is active
     WiFiSettings.onPortal = []() {

@@ -5,3 +5,5 @@
 // pins
 #define WATERPUMP_PIN GPIO_NUM_13
 #define SOIL_MOISTURE_SENSOR_PIN GPIO_NUM_36
+
+#define PASSWORD "waaatering"
