@@ -354,7 +354,16 @@ void setupBME280()
     {
         Serial.println("Could not find a valid BME280 sensor, check wiring!");
         /*while (1);*/
+
+        return;
     }
+
+    // weather monitoring
+    bme.setSampling(Adafruit_BME280::MODE_FORCED,
+                    Adafruit_BME280::SAMPLING_X1, // temperature
+                    Adafruit_BME280::SAMPLING_X1, // pressure
+                    Adafruit_BME280::SAMPLING_X1, // humidity
+                    Adafruit_BME280::FILTER_OFF);
 }
 
 void setupOTA()
@@ -487,7 +496,11 @@ void setup()
     mqttClient.onDisconnect(onMqttDisconnect);
     mqttClient.onMessage(onMqttMessage);
     mqttClient.setServer(mqtt_host.c_str(), mqtt_port);
-    mqttClient.setCredentials(mqtt_user.c_str(), mqtt_password.c_str());
+
+    if (mqtt_user != "")
+    {
+        mqttClient.setCredentials(mqtt_user.c_str(), mqtt_password.c_str());
+    }
 
     connectToWifi();
 
