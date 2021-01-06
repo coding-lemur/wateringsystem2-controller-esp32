@@ -23,6 +23,19 @@ This controller is the heart of my new wateringsystem.
 - host by your own: complete control over your data (no external cloud service needed)
 - OTA updates
 
+## Setup
+
+- connect all parts to the ESP32
+- connect power
+- the ESP32 starting an own Wifi access point named "wateringsystem-{device ID}"
+- connect to this Wifi with your smartphone
+- use `waaatering` for Wifi password
+- you will redirected to a config page
+- insert your Wifi and MQTT broker credentials
+- click on "save"
+- the ESP32 will restarting and connect to your MQTT broker
+- after about 60 seconds should you should see a new topic in your MQTT broker `wateringsystem/client/{device ID}/out/info` with a lot of information in the payload
+
 ## MQTT API
 
 The whole module is controllable via MQTT protocol. So it's easy to integrate in existing SmartHome systems (like Home Assistant or Node-Red).
