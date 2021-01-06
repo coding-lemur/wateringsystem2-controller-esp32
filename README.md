@@ -29,7 +29,7 @@ The whole module is controllable via MQTT protocol. So it's easy to integrate in
 
 ### Incoming commands
 
-Topic: wateringsystem/client/in/`command`
+Topic: wateringsystem/client/`{device ID}`/in/`{command}`
 
 | command           | description                                                                                                                                 | payload              |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
@@ -41,7 +41,7 @@ Topic: wateringsystem/client/in/`command`
 
 ### Outcoming commands
 
-Topic: wateringsystem/client/out/`command`
+Topic: wateringsystem/client/`{device ID}`/out/`{command}`
 
 | command       | description                              | payload                                |
 | ------------- | ---------------------------------------- | -------------------------------------- |
