@@ -55,7 +55,7 @@ Topic: wateringsystem/client/`{device ID}`/out/`{command}`
 | field               | description                                                           | type   |
 | ------------------- | --------------------------------------------------------------------- | ------ |
 | version             | version number of module firmware                                     | string |
-| system.chipID       | Unique ID of the device. Will used also in MQTT topics.               | string |
+| system.deviceId     | Unique ID of the device. Will used also in MQTT topics.               | string |
 | system.freeHeap     | free heap memory of CPU                                               | number |
 | energy.shuntVoltage | voltage between V- and V+ (in mV)                                     | number |
 | energy.busVoltage   | voltage of power input pin (in V) (optimal value between 3.6 and 4.0) | number |

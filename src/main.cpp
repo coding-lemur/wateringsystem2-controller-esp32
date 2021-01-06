@@ -18,8 +18,8 @@ extern "C"
 }
 
 #define Sprintf(f, ...) ({ char* s; asprintf(&s, f, __VA_ARGS__); String r = s; free(s); r; })
-#define ESPMAC (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique chip ID
-#define uS_TO_S_FACTOR 1000000                                  /* Conversion factor for micro seconds to seconds */
+#define DEVICE_ID (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique device ID
+#define uS_TO_S_FACTOR 1000000                                     // Conversion factor for micro seconds to seconds
 
 String version = "0.2.0 beta";
 
@@ -107,7 +107,7 @@ int GetRssiAsQuality(int rssi)
 
 const char *getMqttTopic(String part)
 {
-    String topic = "wateringsystem/client/" + ESPMAC + "/" + part;
+    String topic = "wateringsystem/client/" + DEVICE_ID + "/" + part;
 
     return topic.c_str();
 }
@@ -118,7 +118,7 @@ void sendInfo()
     doc["version"] = version;
 
     JsonObject system = doc.createNestedObject("system");
-    system["chipID"] = ESPMAC;
+    system["deviceId"] = DEVICE_ID;
     system["freeHeap"] = ESP.getFreeHeap();
 
     JsonObject energy = doc.createNestedObject("energy");
@@ -462,7 +462,7 @@ void setup()
     WiFi.onEvent(onWiFiEvent);
 
     WiFiSettings.secure = true;
-    WiFiSettings.hostname = "wateringsystem-";
+    WiFiSettings.hostname = "wateringsystem-"; // will auto add device ID
     WiFiSettings.password = PASSWORD;
 
     // Set callbacks to start OTA when the portal is active
