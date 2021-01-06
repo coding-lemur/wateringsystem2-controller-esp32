@@ -478,7 +478,7 @@ void setup()
     };
 
     // define custom settings
-    mqtt_host = WiFiSettings.string("mqtt_host", "localhost");
+    mqtt_host = WiFiSettings.string("mqtt_host", "192.168.1.1");
     mqtt_port = WiFiSettings.integer("mqtt_port", 1883);
     mqtt_user = WiFiSettings.string("mqtt_user");
     mqtt_password = WiFiSettings.string("mqtt_password");
