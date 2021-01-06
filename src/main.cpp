@@ -21,7 +21,7 @@ extern "C"
 #define ESPMAC (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique chip ID
 #define uS_TO_S_FACTOR 1000000                                  /* Conversion factor for micro seconds to seconds */
 
-String version = "0.1.0 beta";
+String version = "0.2.0 beta";
 
 AsyncMqttClient mqttClient;
 
