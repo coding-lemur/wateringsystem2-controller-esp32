@@ -21,7 +21,7 @@ extern "C"
 #define DEVICE_ID (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique device ID
 #define uS_TO_S_FACTOR 1000000                                     // Conversion factor for micro seconds to seconds
 
-String version = "0.2.0 beta";
+String version = "0.2.4 beta";
 
 AsyncMqttClient mqttClient;
 
@@ -29,14 +29,15 @@ AsyncMqttClient mqttClient;
 TimerHandle_t mqttReconnectTimer;
 TimerHandle_t wifiReconnectTimer;
 TimerHandle_t waterpumpTimer;
-TimerHandle_t soilMoistureTimer;
 
 Adafruit_BME280 bme;
 Adafruit_INA219 ina219;
 
 // states
 bool isUpdating = false;
-bool wifi_connected = false;
+bool isWifiConnected = false;
+bool isMqttConnected = false;
+bool isPortalActive = false;
 
 // (old) timers
 unsigned long lastInfoSend = 0;
@@ -49,6 +50,8 @@ String mqtt_password;
 
 void connectToMqtt()
 {
+    isMqttConnected = false;
+
     Serial.println("Connecting to MQTT...");
     mqttClient.connect();
 }
@@ -60,18 +63,21 @@ void onWiFiEvent(WiFiEvent_t event)
     switch (event)
     {
     case SYSTEM_EVENT_STA_GOT_IP:
-        wifi_connected = true;
+        isWifiConnected = true;
 
         Serial.println("WiFi connected");
         Serial.println("IP address: ");
         Serial.println(WiFi.localIP());
 
-        connectToMqtt();
+        if (!isPortalActive)
+        {
+            connectToMqtt();
+        }
 
         break;
 
     case SYSTEM_EVENT_STA_DISCONNECTED:
-        wifi_connected = false;
+        isWifiConnected = false;
 
         Serial.println("WiFi lost connection");
 
@@ -155,7 +161,16 @@ void sendInfo()
 
 void onMqttConnect(bool sessionPresent)
 {
-    mqttClient.subscribe(getMqttTopic("in/#"), 1);
+    isMqttConnected = true;
+
+    Serial.println("mqtt connected");
+
+    const char *subscribeTopic = getMqttTopic("in/#");
+
+    Serial.print("mqtt subscribe: ");
+    Serial.println(subscribeTopic);
+
+    mqttClient.subscribe(subscribeTopic, 1);
     mqttClient.publish(getMqttTopic("out/connected"), 1, false);
 
     sendInfo();
@@ -163,40 +178,45 @@ void onMqttConnect(bool sessionPresent)
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
-    Serial.println("Disconnected from MQTT.");
+    isMqttConnected = false;
 
-    if (WiFi.isConnected())
+    Serial.println("mqtt disconnected");
+
+    if (WiFi.isConnected() && !isPortalActive)
     {
         xTimerStart(mqttReconnectTimer, 0);
     }
 }
 
-void loadSoilMoistureValueAsync()
+void loadSoilMoistureValue()
 {
-    // the soil-moisture sensor need a moment to for get the correct value
+    Serial.println("reading soil-moisture value");
 
-    if (xTimerIsTimerActive(soilMoistureTimer) == pdTRUE)
-    {
-        return;
-    }
+    uint16_t soilMoistureValue = analogRead(SOIL_MOISTURE_SENSOR_PIN);
+    char charBuf[10];
+    String(soilMoistureValue).toCharArray(charBuf, 10);
 
-    // start timer -> wait and load value
-    xTimerStart(soilMoistureTimer, 0);
+    mqttClient.publish(getMqttTopic("out/soil-moisture"), 1, false, charBuf);
 }
 
 void hardReset()
 {
-    SPIFFS.format();
+    Serial.println("starting hard-reset");
+
+    /*SPIFFS.format();
 
     delay(1000);
 
-    ESP.restart();
+    ESP.restart();*/
+
+    WiFiSettings.portal();
 }
 
 void startWaterpump(unsigned long seconds)
 {
     if (xTimerIsTimerActive(waterpumpTimer) == pdTRUE)
     {
+        Serial.println("pump already active");
         return;
     }
 
@@ -206,11 +226,15 @@ void startWaterpump(unsigned long seconds)
 
     // start watering
     digitalWrite(WATERPUMP_PIN, HIGH);
+
+    Serial.println("watering started");
 }
 
 void stopWaterpump()
 {
     digitalWrite(WATERPUMP_PIN, LOW);
+
+    Serial.println("watering stopped");
 }
 
 void goSleep(unsigned long seconds)
@@ -219,6 +243,10 @@ void goSleep(unsigned long seconds)
     {
         return;
     }
+
+    Serial.print("start deep-sleep for ");
+    Serial.print(seconds);
+    Serial.println(" seconds");
 
     StaticJsonDocument<200> doc;
     doc["duration"] = seconds;
@@ -262,7 +290,7 @@ void processingMessage(String channel, DynamicJsonDocument doc)
     }
     else if (channel.equals("get-soil-moisture"))
     {
-        loadSoilMoistureValueAsync();
+        loadSoilMoistureValue();
     }
     else if (channel.equals("hard-reset"))
     {
@@ -272,7 +300,7 @@ void processingMessage(String channel, DynamicJsonDocument doc)
 
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
-    if (isUpdating)
+    if (isUpdating || isPortalActive)
     {
         return;
     }
@@ -289,8 +317,9 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
         DynamicJsonDocument doc(1024);
         deserializeJson(doc, s_payload);
 
-        Serial.println("MQTT topic: " + s_topic);
-        Serial.println("MQTT payload: " + s_payload);
+        Serial.print("MQTT topic: " + s_topic);
+        Serial.print("MQTT payload: " + s_payload);
+        Serial.println("MQTT channel: " + channel);
 
         processingMessage(channel, doc);
     }
@@ -321,6 +350,11 @@ void setupPins()
 {
     pinMode(WATERPUMP_PIN, OUTPUT);
     pinMode(SOIL_MOISTURE_SENSOR_PIN, INPUT);
+
+    // setup PWM
+    uint8_t pwmChannel = 0;
+    ledcSetup(pwmChannel, 5000, 8);
+    ledcAttachPin(WATERPUMP_PIN, pwmChannel);
 }
 
 void onWaterpumpTimerTriggered()
@@ -329,23 +363,11 @@ void onWaterpumpTimerTriggered()
     stopWaterpump();
 }
 
-void onSoilMoistureTimerTriggered()
-{
-    // finished waiting for soil-moisture sensor
-
-    uint16_t soilMoistureValue = analogRead(SOIL_MOISTURE_SENSOR_PIN);
-    char charBuf[10];
-    String(soilMoistureValue).toCharArray(charBuf, 10);
-
-    mqttClient.publish(getMqttTopic("out/soil-moisture"), 1, false, charBuf);
-}
-
 void setupTimers()
 {
     mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
     wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void *)1, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
     waterpumpTimer = xTimerCreate("waterpumpTimer", pdMS_TO_TICKS(1000), pdFALSE, (void *)2, reinterpret_cast<TimerCallbackFunction_t>(onWaterpumpTimerTriggered));
-    soilMoistureTimer = xTimerCreate("soilMoistureTimer", pdMS_TO_TICKS(SOIL_MOISTURE_TIMER_MS), pdFALSE, (void *)3, reinterpret_cast<TimerCallbackFunction_t>(onSoilMoistureTimerTriggered));
 }
 
 void setupBME280()
@@ -476,6 +498,7 @@ void setup()
 
     // Set callbacks to start OTA when the portal is active
     WiFiSettings.onPortal = []() {
+        isPortalActive = true;
         setupOTA();
     };
     WiFiSettings.onPortalWaitLoop = []() {
@@ -513,11 +536,14 @@ void loop()
 {
     ArduinoOTA.handle();
 
-    if (!isUpdating)
+    if (!isPortalActive && !isUpdating)
     {
-        if (lastInfoSend == 0 || millis() - lastInfoSend >= 45000) // every 45 seconds
+        if (isWifiConnected && isMqttConnected)
         {
-            sendInfo();
+            if (lastInfoSend == 0 || millis() - lastInfoSend >= 45000) // every 45 seconds
+            {
+                sendInfo(); // TODO move to async timer
+            }
         }
     }
 }

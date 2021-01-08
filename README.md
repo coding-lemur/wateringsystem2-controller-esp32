@@ -44,13 +44,14 @@ The whole module is controllable via MQTT protocol. So it's easy to integrate in
 
 Topic: wateringsystem/client/`{device ID}`/in/`{command}`
 
-| command           | description                                                                                                                                 | payload              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| watering          | start watering for specific duration (in seconds!)                                                                                          | { duration: number } |
-| abort-watering    | abort watering before timer ends                                                                                                            | -                    |
-| sleep             | start deep-sleep for specific duration (in seconds!)                                                                                        | { duration: number } |
-| get-soil-moisture | starts the measurement of the soil-moisture. After a time delay the value was sent via MQTT topic `wateringsystem/client/out/soil-moisture` | -                    |
-| info              | send info via MQTT topic `wateringsystem/client/out/info` package                                                                           | -                    |
+| command           | description                                                                                                                           | payload              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| watering          | Start watering for specific duration (in seconds!)                                                                                    | { duration: number } |
+| abort-watering    | Abort watering before timer ends                                                                                                      | -                    |
+| sleep             | Start deep-sleep for specific duration (in seconds!)                                                                                  | { duration: number } |
+| get-soil-moisture | Starts the measurement of the soil-moisture. Immediately the result was sent via MQTT topic `wateringsystem/client/out/soil-moisture` | -                    |
+| info              | Send info via MQTT topic `wateringsystem/client/out/info` package                                                                     | -                    |
+| hard-reset        | Reset config with WiFi and MQTT settings and start internal hotspot to reconfigure device.                                            | -                    |
 
 ### Outcoming commands
 
