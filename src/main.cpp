@@ -21,7 +21,7 @@ extern "C"
 #define DEVICE_ID (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique device ID
 #define uS_TO_S_FACTOR 1000000                                     // Conversion factor for micro seconds to seconds
 
-String version = "0.2.4 beta";
+String version = "0.2.7 beta";
 
 AsyncMqttClient mqttClient;
 
@@ -79,10 +79,13 @@ void onWiFiEvent(WiFiEvent_t event)
     case SYSTEM_EVENT_STA_DISCONNECTED:
         isWifiConnected = false;
 
-        Serial.println("WiFi lost connection");
+        Serial.println("WiFi disconnected");
 
-        xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
-        xTimerStart(wifiReconnectTimer, 0);
+        if (!isPortalActive)
+        {
+            xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
+            xTimerStart(wifiReconnectTimer, 0);
+        }
 
         break;
 
@@ -203,13 +206,13 @@ void hardReset()
 {
     Serial.println("starting hard-reset");
 
-    /*SPIFFS.format();
+    SPIFFS.format();
 
     delay(1000);
 
-    ESP.restart();*/
+    ESP.restart();
 
-    WiFiSettings.portal();
+    //WiFiSettings.portal();
 }
 
 void startWaterpump(unsigned long seconds)
@@ -499,6 +502,9 @@ void setup()
     // Set callbacks to start OTA when the portal is active
     WiFiSettings.onPortal = []() {
         isPortalActive = true;
+
+        Serial.println("WiFi config portal active");
+
         setupOTA();
     };
     WiFiSettings.onPortalWaitLoop = []() {
@@ -525,7 +531,10 @@ void setup()
         mqttClient.setCredentials(mqtt_user.c_str(), mqtt_password.c_str());
     }
 
-    connectToWifi();
+    if (!isPortalActive)
+    {
+        connectToWifi();
+    }
 
     setupOTA();
 
