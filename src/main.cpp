@@ -21,7 +21,7 @@ extern "C"
 #define DEVICE_ID (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique device ID
 #define uS_TO_S_FACTOR 1000000                                     // Conversion factor for micro seconds to seconds
 
-String version = "0.2.7 beta";
+String version = "0.2.8 beta";
 
 AsyncMqttClient mqttClient;
 
@@ -353,11 +353,6 @@ void setupPins()
 {
     pinMode(WATERPUMP_PIN, OUTPUT);
     pinMode(SOIL_MOISTURE_SENSOR_PIN, INPUT);
-
-    // setup PWM
-    uint8_t pwmChannel = 0;
-    ledcSetup(pwmChannel, 5000, 8);
-    ledcAttachPin(WATERPUMP_PIN, pwmChannel);
 }
 
 void onWaterpumpTimerTriggered()
