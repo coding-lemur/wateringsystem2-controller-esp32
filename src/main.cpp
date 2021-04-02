@@ -18,8 +18,7 @@ extern "C"
 }
 
 #define Sprintf(f, ...) ({ char* s; asprintf(&s, f, __VA_ARGS__); String r = s; free(s); r; })
-#define DEVICE_ID (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique device ID
-#define uS_TO_S_FACTOR 1000000                                     // Conversion factor for micro seconds to seconds
+#define DEVICE_ID (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique device ID                                // Conversion factor for micro seconds to seconds
 
 String version = "0.2.8 beta";
 
@@ -215,7 +214,7 @@ void hardReset()
     //WiFiSettings.portal();
 }
 
-void startWaterpump(unsigned long seconds)
+void startWaterpump(unsigned long durationMs)
 {
     if (xTimerIsTimerActive(waterpumpTimer) == pdTRUE)
     {
@@ -224,7 +223,7 @@ void startWaterpump(unsigned long seconds)
     }
 
     // start timer for stop waterpump after specific time
-    xTimerChangePeriod(waterpumpTimer, pdMS_TO_TICKS(seconds * 1000), 0);
+    xTimerChangePeriod(waterpumpTimer, pdMS_TO_TICKS(durationMs), 0);
     xTimerStart(waterpumpTimer, 0);
 
     // start watering
@@ -240,19 +239,19 @@ void stopWaterpump()
     Serial.println("watering stopped");
 }
 
-void goSleep(unsigned long seconds)
+void goSleep(unsigned long durationMs)
 {
-    if (seconds <= 0)
+    if (durationMs <= 0)
     {
         return;
     }
 
     Serial.print("start deep-sleep for ");
-    Serial.print(seconds);
-    Serial.println(" seconds");
+    Serial.print(durationMs);
+    Serial.println(" ms");
 
     StaticJsonDocument<200> doc;
-    doc["duration"] = seconds;
+    doc["duration"] = durationMs;
 
     String JS;
     serializeJson(doc, JS);
@@ -261,7 +260,7 @@ void goSleep(unsigned long seconds)
 
     delay(500);
 
-    esp_sleep_enable_timer_wakeup(seconds * uS_TO_S_FACTOR);
+    esp_sleep_enable_timer_wakeup(durationMs * 1000);
     esp_deep_sleep_start();
 }
 
@@ -273,8 +272,8 @@ void processingMessage(String channel, DynamicJsonDocument doc)
     }
     else if (channel.equals("watering"))
     {
-        unsigned long seconds = doc["duration"].as<unsigned long>();
-        startWaterpump(seconds);
+        unsigned long durationMs = doc["duration"].as<unsigned long>();
+        startWaterpump(durationMs);
     }
     else if (channel.equals("abort-watering"))
     {
@@ -288,8 +287,8 @@ void processingMessage(String channel, DynamicJsonDocument doc)
     }
     else if (channel.equals("sleep"))
     {
-        unsigned long seconds = doc["duration"].as<unsigned long>();
-        goSleep(seconds);
+        unsigned long durationMs = doc["duration"].as<unsigned long>();
+        goSleep(durationMs);
     }
     else if (channel.equals("get-soil-moisture"))
     {
