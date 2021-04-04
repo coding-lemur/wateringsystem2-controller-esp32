@@ -120,15 +120,26 @@ const char *getMqttTopic(String part)
     return topic.c_str();
 }
 
+uint16_t loadSoilMoistureValue()
+{
+    uint16_t soilMoistureValue = analogRead(SOIL_MOISTURE_SENSOR_PIN);
+
+    return soilMoistureValue;
+}
+
 void sendInfo()
 {
     DynamicJsonDocument doc(1024);
     doc["version"] = version;
 
+    doc["soil-moisture"] = loadSoilMoistureValue();
+
+    // system
     JsonObject system = doc.createNestedObject("system");
     system["deviceId"] = DEVICE_ID;
     system["freeHeap"] = ESP.getFreeHeap();
 
+    // energy
     JsonObject energy = doc.createNestedObject("energy");
     float busvoltage = ina219.getBusVoltage_V();
     float shuntvoltage = ina219.getShuntVoltage_mV();
@@ -190,17 +201,6 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
     }
 }
 
-void loadSoilMoistureValue()
-{
-    Serial.println("reading soil-moisture value");
-
-    uint16_t soilMoistureValue = analogRead(SOIL_MOISTURE_SENSOR_PIN);
-    char charBuf[10];
-    String(soilMoistureValue).toCharArray(charBuf, 10);
-
-    mqttClient.publish(getMqttTopic("out/soil-moisture"), 1, false, charBuf);
-}
-
 void hardReset()
 {
     Serial.println("starting hard-reset");
@@ -222,7 +222,7 @@ void startWaterpump(unsigned long durationMs)
         return;
     }
 
-    // start timer for stop waterpump after specific time
+    // start timer for stop waterpump
     xTimerChangePeriod(waterpumpTimer, pdMS_TO_TICKS(durationMs), 0);
     xTimerStart(waterpumpTimer, 0);
 
@@ -289,10 +289,6 @@ void processingMessage(String channel, DynamicJsonDocument doc)
     {
         unsigned long durationMs = doc["duration"].as<unsigned long>();
         goSleep(durationMs);
-    }
-    else if (channel.equals("get-soil-moisture"))
-    {
-        loadSoilMoistureValue();
     }
     else if (channel.equals("hard-reset"))
     {
