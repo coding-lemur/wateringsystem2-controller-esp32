@@ -1,11 +1,5 @@
 # wateringsystem controller 2.0 with ESP32
 
-## Status
-
-:construction: **Still in development!** :construction:
-
-No final version at the moment! :construction_worker: :building_construction:
-
 ## Description
 
 This controller is the heart of my new wateringsystem.
@@ -44,31 +38,30 @@ The whole module is controllable via MQTT protocol. So it's easy to integrate in
 
 Topic: wateringsystem/client/`{device ID}`/in/`{command}`
 
-| command           | description                                                                                                                           | payload              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| watering          | Start watering for specific duration (in milliseconds!)                                                                               | { duration: number } |
-| abort-watering    | Abort watering before timer ends                                                                                                      | -                    |
-| sleep             | Start deep-sleep for specific duration (in milliseconds!)                                                                             | { duration: number } |
-| get-soil-moisture | Starts the measurement of the soil-moisture. Immediately the result was sent via MQTT topic `wateringsystem/client/out/soil-moisture` | -                    |
-| info              | Send info via MQTT topic `wateringsystem/client/out/info` package                                                                     | -                    |
-| hard-reset        | Reset config with WiFi and MQTT settings and start internal hotspot to reconfigure device.                                            | -                    |
+| command        | description                                                                                | payload              |
+| -------------- | ------------------------------------------------------------------------------------------ | -------------------- |
+| watering       | Start watering for specific duration (in milliseconds!)                                    | { duration: number } |
+| abort-watering | Abort watering before timer ends                                                           | -                    |
+| sleep          | Start deep-sleep for specific duration (in milliseconds!)                                  | { duration: number } |
+| info           | Send info via MQTT topic `wateringsystem/client/out/info` package                          | -                    |
+| hard-reset     | Reset config with WiFi and MQTT settings and start internal hotspot to reconfigure device. | -                    |
 
 ### Outcoming commands
 
 Topic: wateringsystem/client/`{device ID}`/out/`{command}`
 
-| command       | description                              | payload                                |
-| ------------- | ---------------------------------------- | -------------------------------------- |
-| soil-moisture | analog value of soil-moisture sensor     | number                                 |
-| info          | status info                              | complex JSON. See "info-state" chapter |
-| sleep         | was send if sytem enter deep-sleep       | { duration: number }                   |
-| wakeup        | was send if sytem wakeup from deep-sleep | reason "timer"                         |
+| command | description                              | payload                                |
+| ------- | ---------------------------------------- | -------------------------------------- |
+| info    | status info                              | complex JSON. See "info-state" chapter |
+| sleep   | was send if sytem enter deep-sleep       | { duration: number }                   |
+| wakeup  | was send if sytem wakeup from deep-sleep | reason "timer"                         |
 
 #### Info state
 
 | field               | description                                                           | type   |
 | ------------------- | --------------------------------------------------------------------- | ------ |
 | version             | version number of module firmware                                     | string |
+| soil-moisture       | analog value of soil-moisture sensor                                  | number |
 | system.deviceId     | Unique ID of the device. Will used also in MQTT topics.               | string |
 | system.freeHeap     | free heap memory of CPU                                               | number |
 | energy.shuntVoltage | voltage between V- and V+ (in mV)                                     | number |
@@ -95,7 +88,7 @@ Topic: wateringsystem/client/`{device ID}`/out/`{command}`
 - [x] soldering first prototype of the sketch
 - [x] test firmware
 - [x] test OTA updates
-- [ ] create housing (3D print)
+- [x] create housing (3D print)
 - [ ] create example flow with [Node-RED](https://nodered.org/)
 - [ ] add part list
 - [ ] add video doc
