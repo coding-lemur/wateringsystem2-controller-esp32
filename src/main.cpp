@@ -11,12 +11,6 @@
 
 #include "config.h"
 
-extern "C"
-{
-#include "freertos/FreeRTOS.h"
-#include "freertos/timers.h"
-}
-
 #define Sprintf(f, ...) ({ char* s; asprintf(&s, f, __VA_ARGS__); String r = s; free(s); r; })
 #define DEVICE_ID (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique device ID                                // Conversion factor for micro seconds to seconds
 
@@ -137,7 +131,7 @@ void sendInfo()
     // system
     JsonObject system = doc.createNestedObject("system");
     system["deviceId"] = DEVICE_ID;
-    system["freeHeap"] = ESP.getFreeHeap();
+    system["freeHeap"] = ESP.getFreeHeap(); // in bytes
 
     // energy
     JsonObject energy = doc.createNestedObject("energy");
