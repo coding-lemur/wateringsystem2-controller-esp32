@@ -385,7 +385,7 @@ void setupOTA()
 {
     ArduinoOTA
         .setHostname(WiFiSettings.hostname.c_str())
-        .setPassword(WiFiSettings.password.c_str())
+        //.setPassword(WiFiSettings.password.c_str())
         .onStart([]() {
             String type;
 
