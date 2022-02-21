@@ -28,7 +28,7 @@ This controller is the heart of my new wateringsystem.
 - insert your Wifi and MQTT broker credentials
 - click on "save"
 - the ESP32 will restarting and connect to your MQTT broker
-- after about 1 minute you should see a new topic in your MQTT broker `wateringsystem/client/{device ID}/out/info` with a lot of information in the payload
+- after about 1 minute you should see a new topic in your MQTT broker `wateringsystem/{device ID}/out/info` with a lot of information in the payload
 
 ## MQTT API
 
@@ -36,19 +36,19 @@ The whole module is controllable via MQTT protocol. So it's easy to integrate in
 
 ### Incoming commands
 
-Topic: wateringsystem/client/`{device ID}`/in/`{command}`
+Topic: wateringsystem/`{device ID}`/in/`{command}`
 
 | command        | description                                                                                | payload              |
 | -------------- | ------------------------------------------------------------------------------------------ | -------------------- |
 | watering       | Start watering for specific duration (in milliseconds!)                                    | { duration: number } |
 | abort-watering | Abort watering before timer ends                                                           | -                    |
 | sleep          | Start deep-sleep for specific duration (in milliseconds!)                                  | { duration: number } |
-| info           | Send info via MQTT topic `wateringsystem/client/out/info` package                          | -                    |
+| info           | Send info via MQTT topic `wateringsystem/out/info` package                          | -                    |
 | hard-reset     | Reset config with WiFi and MQTT settings and start internal hotspot to reconfigure device. | -                    |
 
 ### Outcoming commands
 
-Topic: wateringsystem/client/`{device ID}`/out/`{command}`
+Topic: wateringsystem/`{device ID}`/out/`{command}`
 
 | command | description                              | payload                                |
 | ------- | ---------------------------------------- | -------------------------------------- |

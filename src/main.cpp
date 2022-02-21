@@ -14,7 +14,7 @@
 #define Sprintf(f, ...) ({ char* s; asprintf(&s, f, __VA_ARGS__); String r = s; free(s); r; })
 #define DEVICE_ID (Sprintf("%06" PRIx64, ESP.getEfuseMac() >> 24)) // unique device ID                                // Conversion factor for micro seconds to seconds
 
-String version = "0.2.8 beta";
+String version = "0.3.0";
 
 AsyncMqttClient mqttClient;
 
@@ -109,8 +109,7 @@ int GetRssiAsQuality(int rssi)
 
 const char *getMqttTopic(String part)
 {
-    String topic = "wateringsystem/client/" + DEVICE_ID + "/" + part;
-
+    String topic = "wateringsystem/" + DEVICE_ID + "/" + part;
     return topic.c_str();
 }
 
@@ -205,7 +204,7 @@ void hardReset()
 
     ESP.restart();
 
-    //WiFiSettings.portal();
+    // WiFiSettings.portal();
 }
 
 void startWaterpump(unsigned long durationMs)
@@ -380,7 +379,8 @@ void setupOTA()
     ArduinoOTA
         .setHostname(WiFiSettings.hostname.c_str())
         //.setPassword(WiFiSettings.password.c_str())
-        .onStart([]() {
+        .onStart([]()
+                 {
             String type;
 
             if (ArduinoOTA.getCommand() == U_FLASH)
@@ -395,17 +395,16 @@ void setupOTA()
             // NOTE: if updating FS this would be the place to unmount FS using FS.end()
             Serial.println("Start updating " + type);
 
-            isUpdating = true;
-        })
-        .onEnd([]() {
+            isUpdating = true; })
+        .onEnd([]()
+               {
             Serial.println("\nEnd");
 
-            isUpdating = false;
-        })
-        .onProgress([](unsigned int progress, unsigned int total) {
-            Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-        })
-        .onError([](ota_error_t error) {
+            isUpdating = false; })
+        .onProgress([](unsigned int progress, unsigned int total)
+                    { Serial.printf("Progress: %u%%\r", (progress / (total / 100))); })
+        .onError([](ota_error_t error)
+                 {
             Serial.printf("Error[%u]: ", error);
 
             if (error == OTA_AUTH_ERROR)
@@ -427,8 +426,7 @@ void setupOTA()
             else if (error == OTA_END_ERROR)
             {
                 Serial.println("End Failed");
-            }
-        })
+            } })
         .begin();
 }
 
@@ -484,18 +482,21 @@ void setup()
     WiFiSettings.password = PASSWORD;
 
     // Set callbacks to start OTA when the portal is active
-    WiFiSettings.onPortal = []() {
+    WiFiSettings.onPortal = []()
+    {
         isPortalActive = true;
 
         Serial.println("WiFi config portal active");
 
         setupOTA();
     };
-    WiFiSettings.onPortalWaitLoop = []() {
+    WiFiSettings.onPortalWaitLoop = []()
+    {
         ArduinoOTA.handle();
     };
 
-    WiFiSettings.onConfigSaved = []() {
+    WiFiSettings.onConfigSaved = []()
+    {
         ESP.restart();
     };
 
