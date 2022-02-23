@@ -61,7 +61,7 @@ Topic: wateringsystem/`{device ID}`/out/`{command}`
 | field               | description                                                           | type   |
 | ------------------- | --------------------------------------------------------------------- | ------ |
 | version             | version number of module firmware                                     | string |
-| soil-moisture       | analog value of soil-moisture sensor                                  | number |
+| soilMoisture       | analog value of soil-moisture sensor                                  | number |
 | system.deviceId     | Unique ID of the device. Will used also in MQTT topics.               | string |
 | system.freeHeap     | free heap memory of CPU                                               | number |
 | energy.shuntVoltage | voltage between V- and V+ (in mV)                                     | number |

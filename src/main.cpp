@@ -125,7 +125,7 @@ void sendInfo()
     DynamicJsonDocument doc(1024);
     doc["version"] = version;
 
-    doc["soil-moisture"] = loadSoilMoistureValue();
+    doc["soilMoisture"] = loadSoilMoistureValue();
 
     // system
     JsonObject system = doc.createNestedObject("system");
