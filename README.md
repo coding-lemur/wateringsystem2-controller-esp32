@@ -73,10 +73,7 @@ Topic: wateringsystem/`{device ID}`/out/`{command}`
 | network.wifiQuality | quality of signal strength (value between 0 and 100%)                 | number |
 | network.wifiSsid    | SSID of connected wifi                                                | string |
 | network.ip          | ip address of the module                                              | string |
-| weather.temperature | temperature of the BME280 sensore (in °C)                             | number |
-| weather.humidity    | humidity value of the BME280 sensor (in %)                            | number |
-| weather.pressure    | pressure of the BME280 sensor (in hPa )                               | number |
-| weather.altitude    | estimated altitude above sea level                                    | number |
+
 
 ## Sketch
 

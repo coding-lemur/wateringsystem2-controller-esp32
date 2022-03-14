@@ -3,7 +3,6 @@
 #include <ArduinoOTA.h>
 #include <AsyncMqttClient.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
 #include <Adafruit_INA219.h>
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
@@ -23,7 +22,6 @@ TimerHandle_t mqttReconnectTimer;
 TimerHandle_t wifiReconnectTimer;
 TimerHandle_t waterpumpTimer;
 
-Adafruit_BME280 bme;
 Adafruit_INA219 ina219;
 
 // states
@@ -149,13 +147,6 @@ void sendInfo()
     network["wifiQuality"] = GetRssiAsQuality(rssi);
     network["wifiSsid"] = WiFi.SSID();
     network["ip"] = WiFi.localIP().toString();
-
-    // weather
-    JsonObject weather = doc.createNestedObject("weather");
-    weather["temperature"] = bme.readTemperature();
-    weather["humidity"] = bme.readHumidity();
-    weather["pressure"] = bme.readPressure() / 100.0F;            // in hPa
-    weather["altitude"] = bme.readAltitude(SEALEVELPRESSURE_HPA); // in m
 
     String JS;
     serializeJson(doc, JS);
@@ -356,24 +347,6 @@ void setupTimers()
     waterpumpTimer = xTimerCreate("waterpumpTimer", pdMS_TO_TICKS(1000), pdFALSE, (void *)2, reinterpret_cast<TimerCallbackFunction_t>(onWaterpumpTimerTriggered));
 }
 
-void setupBME280()
-{
-    if (!bme.begin(0x76))
-    {
-        Serial.println("Could not find a valid BME280 sensor, check wiring!");
-        /*while (1);*/
-
-        return;
-    }
-
-    // weather monitoring
-    bme.setSampling(Adafruit_BME280::MODE_FORCED,
-                    Adafruit_BME280::SAMPLING_X1, // temperature
-                    Adafruit_BME280::SAMPLING_X1, // pressure
-                    Adafruit_BME280::SAMPLING_X1, // humidity
-                    Adafruit_BME280::FILTER_OFF);
-}
-
 void setupOTA()
 {
     ArduinoOTA
@@ -472,7 +445,6 @@ void setup()
 
     setupPins();
     setupTimers();
-    setupBME280();
     setupIna219();
 
     WiFi.onEvent(onWiFiEvent);
